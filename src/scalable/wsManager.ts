@@ -109,9 +109,11 @@ class WebSocketManager {
       return;
     }
 
+    console.log(`[wsManager] ← ${msg.type}${msg.id ? ` (id=${msg.id.slice(0, 8)})` : ''}`);
+
     switch (msg.type) {
       case 'connection_ack':
-        console.log('[wsManager] connection_ack — subscribing all');
+        console.log(`[wsManager] connection_ack — subscribing ${this.subs.size} subscription(s)`);
         for (const id of this.subs.keys()) {
           this.sendSubscribe(id);
         }
@@ -122,6 +124,8 @@ class WebSocketManager {
           const sub = this.subs.get(msg.id);
           if (sub) {
             sub.onData((msg.payload as { data?: unknown })?.data);
+          } else {
+            console.warn(`[wsManager] ← next for unknown id ${msg.id.slice(0, 8)} — sub may have been removed`);
           }
         }
         break;
@@ -144,12 +148,16 @@ class WebSocketManager {
       case 'complete':
         console.log('[wsManager] Subscription completed by server for', msg.id);
         break;
+
+      default:
+        console.warn(`[wsManager] ← unhandled message type "${msg.type}":`, raw);
     }
   }
 
   private sendSubscribe(id: string): void {
     const sub = this.subs.get(id);
     if (!sub || this.ws?.readyState !== WebSocket.OPEN) return;
+    console.log(`[wsManager] → subscribe ${sub.operationName} (id=${id.slice(0, 8)}, vars=${JSON.stringify(sub.variables)})`);
     this.send({
       id,
       type: 'subscribe',
