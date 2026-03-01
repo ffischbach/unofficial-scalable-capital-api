@@ -6,8 +6,8 @@ import { subscriptionManager } from '../../scalable/subscription.ts';
 const router = Router();
 
 // GET /portfolio — current portfolio valuation snapshot
-router.get('/', requireSession, (_req, res) => {
-  const realtime = subscriptionManager.getLastValuation();
+router.get('/', requireSession, async (_req, res) => {
+  const realtime = await subscriptionManager.fetchLatest();
 
   if (realtime) {
     res.json({

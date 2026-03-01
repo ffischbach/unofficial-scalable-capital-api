@@ -43,6 +43,18 @@ class SubscriptionManager {
     return this.lastValuation;
   }
 
+  fetchLatest(timeoutMs = 3000): Promise<RealTimeValuation | null> {
+    if (this.lastValuation) return Promise.resolve(this.lastValuation);
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => { unsub(); resolve(null); }, timeoutMs);
+      const unsub = this.subscribe((val) => {
+        clearTimeout(timer);
+        unsub();
+        resolve(val);
+      });
+    });
+  }
+
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
     if (this.listeners.size === 1) {
