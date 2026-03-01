@@ -1,0 +1,262 @@
+openapi: 3.1.0
+info:
+  title: Unofficial Scalable Capital API
+  version: 0.1.0
+  description: |
+    Local HTTP proxy that authenticates with Scalable Capital's private GraphQL API
+    via Puppeteer interactive login and serves data to local clients.
+
+servers:
+  - url: http://127.0.0.1:3141
+
+components:
+  securitySchemes:
+    GatewayToken:
+      type: apiKey
+      in: header
+      name: X-Gateway-Token
+      description: Optional gateway token set via --token CLI flag.
+
+  schemas:
+    AuthStatus:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated:
+          type: boolean
+        personId:
+          type: string
+        portfolioId:
+          type: string
+        valuation:
+          type: string
+          description: Portfolio valuation captured at login time (stored as string to avoid float precision issues).
+        expiresAt:
+          type: number
+          description: Unix timestamp (ms) when the session expires.
+
+    LoginResponse:
+      type: object
+      required: [message, personId, portfolioId, expiresAt]
+      properties:
+        message:
+          type: string
+        personId:
+          type: string
+        portfolioId:
+          type: string
+        expiresAt:
+          type: number
+
+    PortfolioValuation:
+      type: object
+      required: [source, valuation]
+      properties:
+        source:
+          type: string
+          enum: [realtime, session]
+          description: '"realtime" if data came from the WebSocket subscription tick, "session" if from login snapshot.'
+        valuation:
+          type: number
+          description: Total portfolio value in account currency.
+        securitiesValuation:
+          type: number
+        unrealisedReturn:
+          type: object
+          properties:
+            absoluteUnrealisedReturn:
+              type: number
+            relativeUnrealisedReturn:
+              type: number
+        cryptoValuation:
+          type: number
+        timeWeightedReturnByTimeframe:
+          type: array
+          items:
+            type: object
+            properties:
+              timeframe:
+                type: string
+              performance:
+                type: number
+              simpleAbsoluteReturn:
+                type: number
+        timestampUtc:
+          type: object
+          properties:
+            time:
+              type: string
+            epochMillisecond:
+              type: number
+
+    GraphQLRequest:
+      type: object
+      required: [operationName, query]
+      properties:
+        operationName:
+          type: string
+        query:
+          type: string
+        variables:
+          type: object
+          additionalProperties: true
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Server is running
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /auth/login:
+    post:
+      summary: Interactive login
+      operationId: postAuthLogin
+      description: Opens a headed Chromium window for the user to log in and complete 2FA. Blocks until login is complete.
+      responses:
+        '200':
+          description: Login successful (or already authenticated)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/status:
+    get:
+      summary: Authentication status
+      operationId: getAuthStatus
+      responses:
+        '200':
+          description: Current session state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthStatus'
+
+  /auth/logout:
+    delete:
+      summary: Log out
+      operationId: deleteAuthLogout
+      description: Clears the persisted session from disk.
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+
+  /proxy:
+    post:
+      summary: Raw GraphQL passthrough
+      operationId: postProxy
+      description: Forwards a raw GraphQL query to Scalable Capital's API. Useful for exploring the schema before adding a typed endpoint.
+      security:
+        - GatewayToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GraphQLRequest'
+      responses:
+        '200':
+          description: GraphQL response (may contain errors array)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    additionalProperties: true
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: string
+        '400':
+          description: Missing operationName or query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid or missing gateway token / not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /valuation/stream:
+    get:
+      summary: Real-time valuation stream (SSE)
+      operationId: getValuationStream
+      description: |
+        Server-Sent Events stream of real-time portfolio valuation ticks from the Scalable Capital WebSocket subscription.
+        Each event is a JSON-encoded RealTimeValuation object.
+
+        **curl:** `curl -N http://127.0.0.1:3141/valuation/stream`
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Newline-delimited SSE events, each containing a JSON RealTimeValuation payload.
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /portfolio:
+    get:
+      summary: Current portfolio valuation snapshot
+      operationId: getPortfolio
+      description: |
+        Returns the most recent valuation data. Uses the last WebSocket subscription tick if available,
+        otherwise falls back to the valuation captured at login time.
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Portfolio valuation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioValuation'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

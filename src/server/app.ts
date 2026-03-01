@@ -4,6 +4,8 @@ import { errorHandler } from './middleware/errorHandler.ts';
 import authRouter from './routes/auth.ts';
 import proxyRouter from './routes/proxy.ts';
 import valuationRouter from './routes/valuation.ts';
+import portfolioRouter from './routes/portfolio.ts';
+import { spec, scalarMiddleware } from './openapi.ts';
 import type { GatewayConfig } from '../types.ts';
 
 export function createApp(config: GatewayConfig): express.Application {
@@ -12,11 +14,11 @@ export function createApp(config: GatewayConfig): express.Application {
   // Body parsing
   app.use(express.json({ limit: '10mb' }));
 
-  // Optional gateway token middleware (exempts /auth routes)
+  // Optional gateway token middleware (exempts /auth and /docs routes)
   if (config.token) {
     const token = config.token;
     app.use((req: Request, res: Response, next: NextFunction) => {
-      if (req.path.startsWith('/auth')) {
+      if (req.path.startsWith('/auth') || req.path.startsWith('/docs') || req.path === '/openapi.json') {
         next();
         return;
       }
@@ -34,10 +36,16 @@ export function createApp(config: GatewayConfig): express.Application {
     res.json({ status: 'ok' });
   });
 
+  // API docs
+  app.get('/openapi.json', (_req, res) => res.json(spec));
+  app.get('/docs', scalarMiddleware);
+
   // Routes
   app.use('/auth', authRouter);
   app.use('/proxy', proxyRouter);
   app.use('/valuation', valuationRouter);
+  app.use('/portfolio', portfolioRouter);
+
   // Error handler — must be last
   app.use(errorHandler);
 
