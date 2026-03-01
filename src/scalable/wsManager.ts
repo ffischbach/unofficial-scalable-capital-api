@@ -85,7 +85,7 @@ class WebSocketManager {
 
     this.ws.on('open', () => {
       console.log('[wsManager] Connected — sending connection_init');
-      this.send({ type: 'connection_init', payload: {} });
+      this.send({ type: 'connection_init', payload: { enabledFeatures: 'CRYPTO_MULTI_ETP' } });
     });
 
     this.ws.on('message', (raw) => this.handleMessage(raw.toString()));

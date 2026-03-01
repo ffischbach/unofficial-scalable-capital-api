@@ -3,8 +3,8 @@ import { getSession } from '../auth/session.ts';
 import { wsManager } from './wsManager.ts';
 
 const QUOTE_QUERY = /* GraphQL */ `
-  subscription realTimeQuoteTicks($isins: [String!]!, $portfolioId: ID, $includeYearToDate: Boolean) {
-    realTimeQuoteTicks(isins: $isins portfolioId: $portfolioId includeYearToDate: $includeYearToDate) {
+  subscription realTimeQuoteTicks($isins: [String!]!, $portfolioId: ID, $source: MarketDataSource, $includeYearToDate: Boolean) {
+    realTimeQuoteTicks(isins: $isins portfolioId: $portfolioId source: $source includeYearToDate: $includeYearToDate) {
       id isin midPrice time currency bidPrice askPrice isOutdated
       timestampUtc { time epochMillisecond }
       performanceDate { date }
@@ -69,12 +69,10 @@ class QuoteManager {
       includeYearToDate: true,
     };
     const onData = (data: unknown) => {
-      const ticks = (data as { realTimeQuoteTicks?: QuoteTick[] })?.realTimeQuoteTicks;
-      if (!Array.isArray(ticks)) return;
-      for (const tick of ticks) {
-        for (const [listener, listenerIsinList] of this.listenerIsins) {
-          if (listenerIsinList.includes(tick.isin)) listener(tick);
-        }
+      const tick = (data as { realTimeQuoteTicks?: QuoteTick })?.realTimeQuoteTicks;
+      if (!tick?.isin) return;
+      for (const [listener, listenerIsinList] of this.listenerIsins) {
+        if (listenerIsinList.includes(tick.isin)) listener(tick);
       }
     };
 
