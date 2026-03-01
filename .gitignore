@@ -4,3 +4,4 @@ session.json
 .env
 .idea/
 *.iml
+/graphql-apis/
