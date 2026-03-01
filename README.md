@@ -23,9 +23,11 @@ npm run dev -- --port 3141 --token my-secret-token
 
 The server listens on `http://127.0.0.1:3141` (loopback only, not exposed to the network).
 
-## API Docs
+## API Reference
 
-Once the server is running, open **http://127.0.0.1:3141/docs** in your browser for interactive API documentation. The raw OpenAPI spec is available at `http://127.0.0.1:3141/openapi.json`.
+See **[API.md](API.md)** for the full endpoint reference with request/response examples.
+
+Once the server is running, interactive docs are also available at **http://127.0.0.1:3141/docs** (raw OpenAPI spec at `/openapi.json`).
 
 ## Authentication Flow
 
