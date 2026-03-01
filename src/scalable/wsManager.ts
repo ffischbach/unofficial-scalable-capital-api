@@ -134,8 +134,9 @@ class WebSocketManager {
         console.error('[wsManager] Subscription error for', msg.id, ':', JSON.stringify(msg.payload));
         const errors = msg.payload as Array<{ extensions?: { code?: string } }> | undefined;
         if (errors?.some((e) => e.extensions?.code === 'UNAUTHENTICATED')) {
-          console.warn('[wsManager] Session expired — closing WebSocket to reconnect with fresh cookies');
-          this.ws?.close();
+          console.warn('[wsManager] Session invalid — dropping all subscriptions. Run POST /auth/login to re-authenticate.');
+          this.subs.clear();
+          this.disconnect();
         }
         break;
       }
