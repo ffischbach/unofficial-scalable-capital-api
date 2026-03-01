@@ -296,6 +296,344 @@ components:
         error:
           type: string
 
+    GraphQLErrors:
+      type: object
+      description: Upstream GraphQL errors forwarded as-is.
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              message:
+                type: string
+
+    ZonedTimestamp:
+      type: object
+      required: [time, epochMillisecond]
+      properties:
+        time:
+          type: string
+          description: ISO-8601 datetime string.
+          example: "2026-02-27T21:59:57.000Z"
+        epochMillisecond:
+          type: number
+          example: 1772229590000
+
+    PerformanceByTimeframe:
+      type: object
+      required: [timeframe, performance, simpleAbsoluteReturn]
+      properties:
+        timeframe:
+          type: string
+          enum: [INTRADAY, TWO_DAYS, ONE_WEEK, ONE_MONTH, THREE_MONTHS, SIX_MONTHS, ONE_YEAR, YEAR_TO_DATE, MAX, SINCE_BUY]
+        performance:
+          type: number
+          description: Relative performance as a decimal fraction (e.g. 0.0032 = 0.32%).
+        simpleAbsoluteReturn:
+          type: number
+          description: Absolute return in account currency.
+
+    SavingsPlan:
+      type: object
+      nullable: true
+      properties:
+        isin:
+          type: string
+        amount:
+          type: number
+        dayOfTheMonth:
+          type: number
+        dynamizationRate:
+          type: number
+        frequency:
+          type: string
+        paymentMethod:
+          type: string
+        nextExecutionDate:
+          type: object
+          nullable: true
+          properties:
+            date:
+              type: string
+
+    Position:
+      type: object
+      nullable: true
+      properties:
+        filled:
+          type: number
+        blocked:
+          type: number
+        pending:
+          type: number
+        fifoPrice:
+          type: number
+        sellableByVenue:
+          type: array
+          items:
+            type: object
+            properties:
+              venue:
+                type: string
+              sellable:
+                type: number
+
+    InventoryItem:
+      type: object
+      nullable: true
+      description: Holdings in this security (null if not in portfolio).
+      properties:
+        id:
+          type: string
+        savingsPlan:
+          $ref: '#/components/schemas/SavingsPlan'
+        position:
+          $ref: '#/components/schemas/Position'
+
+    SecurityInfo:
+      type: object
+      description: Basic security metadata with optional inventory/holdings.
+      properties:
+        id:
+          type: string
+        isin:
+          type: string
+        wkn:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          example: STOCK
+        isSustainable:
+          type: boolean
+        isOnWatchlist:
+          type: boolean
+        numberOfPendingOrders:
+          type: number
+        partnerType:
+          type: string
+          nullable: true
+        reimbursedFor:
+          type: array
+          items:
+            type: string
+        inventory:
+          $ref: '#/components/schemas/InventoryItem'
+
+    SecurityQuoteTick:
+      type: object
+      description: Current price data for a security.
+      properties:
+        id:
+          type: string
+        isin:
+          type: string
+        midPrice:
+          type: number
+        time:
+          type: string
+        currency:
+          type: string
+        bidPrice:
+          type: number
+        askPrice:
+          type: number
+        isOutdated:
+          type: boolean
+        timestampUtc:
+          $ref: '#/components/schemas/ZonedTimestamp'
+        performanceDate:
+          type: object
+          nullable: true
+          properties:
+            date:
+              type: string
+        performancesByTimeframe:
+          type: array
+          items:
+            $ref: '#/components/schemas/PerformanceByTimeframe'
+
+    VenueTradabilityStatus:
+      type: object
+      properties:
+        venue:
+          type: string
+        tradabilityStatus:
+          type: string
+        unavailabilityReason:
+          type: string
+          nullable: true
+
+    Tradability:
+      type: object
+      properties:
+        id:
+          type: string
+        tradabilityStatus:
+          type: string
+          example: TRADABLE_WITHOUT_APPROPRIATENESS
+        primaryVenue:
+          type: object
+          nullable: true
+          properties:
+            venue:
+              type: string
+            status:
+              type: string
+        venues:
+          type: array
+          items:
+            $ref: '#/components/schemas/VenueTradabilityStatus'
+
+    BuyingPower:
+      type: object
+      properties:
+        id:
+          type: string
+        cashBalance:
+          type: number
+        liveLimit:
+          type: number
+        pendingBuyOrdersAmount:
+          type: number
+        pendingDividendsReinvestmentAmount:
+          type: number
+        pendingPocketMoneyAmount:
+          type: number
+        pendingSavingsPlanAmount:
+          type: number
+        pendingWithdrawalsAmount:
+          type: number
+        estimatedTaxes:
+          type: number
+        directDebit:
+          type: number
+        cashAvailableToInvest:
+          type: number
+
+    MarketDataPoint:
+      type: object
+      properties:
+        id:
+          type: string
+        midPrice:
+          type: number
+        timestampUtc:
+          $ref: '#/components/schemas/ZonedTimestamp'
+
+    MarketDataTimeSeries:
+      type: object
+      properties:
+        id:
+          type: string
+        isin:
+          type: string
+        timeFrame:
+          type: string
+        currency:
+          type: string
+        source:
+          type: string
+        closingReferencePoint:
+          $ref: '#/components/schemas/MarketDataPoint'
+        dataPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketDataPoint'
+
+    PortfolioTimeseriesDataPoint:
+      type: object
+      properties:
+        id:
+          type: string
+        absoluteReturn:
+          type: number
+        valuation:
+          type: number
+        timestampUtc:
+          type: object
+          properties:
+            time:
+              type: string
+
+    PortfolioTimeseriesOverTime:
+      type: object
+      properties:
+        id:
+          type: string
+        timeframe:
+          type: string
+          enum: [INTRADAY, TWO_DAYS, ONE_WEEK, ONE_MONTH, THREE_MONTHS, SIX_MONTHS, ONE_YEAR, YEAR_TO_DATE, MAX]
+        closingReferencePoint:
+          $ref: '#/components/schemas/PortfolioTimeseriesDataPoint'
+        dataPoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioTimeseriesDataPoint'
+
+    Transaction:
+      type: object
+      description: A single transaction (polymorphic — cash, security, non-trade security, or ELTIF).
+      properties:
+        id:
+          type: string
+        currency:
+          type: string
+        type:
+          type: string
+          enum: [CASH_TRANSACTION, SECURITY_TRANSACTION, NON_TRADE_SECURITY_TRANSACTION, ELTIF_TRANSACTION]
+        status:
+          type: string
+          enum: [SETTLED, CANCELLED, PENDING]
+        isCancellation:
+          type: boolean
+        lastEventDateTime:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+          nullable: true
+        isin:
+          type: string
+          nullable: true
+        quantity:
+          type: number
+          nullable: true
+        side:
+          type: string
+          enum: [BUY, SELL]
+          nullable: true
+        cashTransactionType:
+          type: string
+          nullable: true
+        relatedIsin:
+          type: string
+          nullable: true
+        securityTransactionType:
+          type: string
+          nullable: true
+        nonTradeSecurityTransactionType:
+          type: string
+          nullable: true
+
+    TransactionPage:
+      type: object
+      properties:
+        cursor:
+          type: string
+          nullable: true
+          description: Pagination cursor for the next page; null when no more pages.
+        total:
+          type: number
+          description: Total number of matching transactions.
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+
 paths:
   /health:
     get:
@@ -534,3 +872,978 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /transactions:
+    get:
+      summary: List transactions
+      operationId: getTransactions
+      description: |
+        Returns a paginated list of transactions (trades, cash movements, transfers) from the broker portfolio.
+        Filter by ISIN, type, status, or free-text search. Pass the returned `cursor` to fetch the next page.
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: pageSize
+          in: query
+          schema:
+            type: number
+            default: 20
+          description: Number of transactions to return.
+        - name: cursor
+          in: query
+          schema:
+            type: string
+          description: Pagination cursor from a previous response. Omit for the first page.
+        - name: isin
+          in: query
+          schema:
+            type: string
+          description: Filter to transactions for a specific ISIN.
+          example: NL0010273215
+        - name: searchTerm
+          in: query
+          schema:
+            type: string
+          description: Free-text search across transaction descriptions.
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of transaction types to include.
+          example: "SECURITY_TRANSACTION,CASH_TRANSACTION"
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of statuses to include.
+          example: "SETTLED"
+      responses:
+        '200':
+          description: Paginated transaction list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          moreTransactions:
+                            $ref: '#/components/schemas/TransactionPage'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /securities/{isin}:
+    get:
+      summary: Full security details
+      operationId: getSecurity
+      description: |
+        Returns comprehensive security data: metadata, tradability across all venues, inventory/holdings,
+        savings plan, and the current quote tick with performance by timeframe (`getSecurity` operation).
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: isin
+          in: path
+          required: true
+          schema:
+            type: string
+          example: NL0010273215
+      responses:
+        '200':
+          description: Security details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          security:
+                            allOf:
+                              - $ref: '#/components/schemas/SecurityInfo'
+                              - type: object
+                                properties:
+                                  availabilityForSavingsPlans:
+                                    type: string
+                                  portfolioGroupDetails:
+                                    type: object
+                                    nullable: true
+                                    properties:
+                                      id:
+                                        type: string
+                                      name:
+                                        type: string
+                                  buyTradability:
+                                    $ref: '#/components/schemas/Tradability'
+                                  sellTradability:
+                                    $ref: '#/components/schemas/Tradability'
+                                  buyTradabilityForTrading:
+                                    $ref: '#/components/schemas/Tradability'
+                                  sellTradabilityForTrading:
+                                    $ref: '#/components/schemas/Tradability'
+                                  transferAvailability:
+                                    type: object
+                                    nullable: true
+                                    properties:
+                                      isAvailable:
+                                        type: boolean
+                                      unavailabilityReason:
+                                        type: string
+                                        nullable: true
+                                  liquidityBand:
+                                    type: string
+                                    nullable: true
+                                  quoteTick:
+                                    $ref: '#/components/schemas/SecurityQuoteTick'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /securities/{isin}/info:
+    get:
+      summary: Basic security info
+      operationId: getSecurityInfo
+      description: |
+        Returns core security metadata plus current inventory/holdings (`getSecurityInfo` operation).
+        Lighter than `GET /securities/{isin}` — no tradability or quote data.
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: isin
+          in: path
+          required: true
+          schema:
+            type: string
+          example: US02079K3059
+      responses:
+        '200':
+          description: Security info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          security:
+                            $ref: '#/components/schemas/SecurityInfo'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /securities/{isin}/static:
+    get:
+      summary: Static security info
+      operationId: getStaticSecurityInfo
+      description: |
+        Returns static metadata only — no inventory, no quotes (`getStaticSecurityInfo` operation).
+        Useful for identifying instrument type, liquidity band, and derivatives info.
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: isin
+          in: path
+          required: true
+          schema:
+            type: string
+          example: NL0010273215
+      responses:
+        '200':
+          description: Static security info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          security:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              isin:
+                                type: string
+                              wkn:
+                                type: string
+                              name:
+                                type: string
+                              type:
+                                type: string
+                              partnerType:
+                                type: string
+                                nullable: true
+                              liquidityBand:
+                                type: string
+                                nullable: true
+                              underlying:
+                                type: object
+                                nullable: true
+                                properties:
+                                  id:
+                                    type: string
+                                  isin:
+                                    type: string
+                              derivativesInfo:
+                                type: object
+                                nullable: true
+                                properties:
+                                  id:
+                                    type: string
+                                  knockout:
+                                    type: object
+                                    nullable: true
+                                    properties:
+                                      isKnocked:
+                                        type: boolean
+                                  expiry:
+                                    type: object
+                                    nullable: true
+                                    properties:
+                                      id:
+                                        type: string
+                                      isExpired:
+                                        type: boolean
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /securities/{isin}/tick:
+    get:
+      summary: Current quote tick
+      operationId: getSecurityTick
+      description: |
+        Returns the latest quote tick for a security — bid, ask, mid price, and performance by timeframe
+        (`getSecurityTick` operation). Optionally include Year-to-Date performance.
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: isin
+          in: path
+          required: true
+          schema:
+            type: string
+          example: NL0010273215
+        - name: source
+          in: query
+          schema:
+            type: string
+          description: Market data source override (e.g. `CONSOLIDATED`). Omit to use the default.
+        - name: includeYearToDate
+          in: query
+          schema:
+            type: boolean
+          description: When true, includes YEAR_TO_DATE in `performancesByTimeframe`.
+      responses:
+        '200':
+          description: Quote tick
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          security:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              isin:
+                                type: string
+                              quoteTick:
+                                $ref: '#/components/schemas/SecurityQuoteTick'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /securities/{isin}/timeseries:
+    get:
+      summary: Historical price time series
+      operationId: getTimeSeriesBySecurity
+      description: |
+        Returns OHLC-style time series data points for one or more timeframes (`getTimeSeriesBySecurity` operation).
+        Defaults to all 8 standard timeframes. Does not require an active session for the query itself
+        but the gateway token check still applies.
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: isin
+          in: path
+          required: true
+          schema:
+            type: string
+          example: NL0010273215
+        - name: timeframes
+          in: query
+          schema:
+            type: string
+          description: |
+            Comma-separated timeframes. Defaults to all:
+            `TWO_DAYS,ONE_WEEK,ONE_MONTH,THREE_MONTHS,SIX_MONTHS,YEAR_TO_DATE,ONE_YEAR,MAX`
+          example: "ONE_WEEK,ONE_MONTH,ONE_YEAR"
+        - name: includeYearToDate
+          in: query
+          schema:
+            type: boolean
+          description: When true, requests YEAR_TO_DATE series even if not listed in `timeframes`.
+      responses:
+        '200':
+          description: Time series data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timeSeriesBySecurity:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MarketDataTimeSeries'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /securities/{isin}/tradability:
+    get:
+      summary: Trading tradability
+      operationId: getTradingTradability
+      description: |
+        Returns buy and sell tradability status across all venues for the **trading** flow
+        (`getTradingTradability` operation). Useful for checking whether a limit/market order can be placed.
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: isin
+          in: path
+          required: true
+          schema:
+            type: string
+          example: NL0010273215
+      responses:
+        '200':
+          description: Tradability status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          security:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              buyTradabilityForTrading:
+                                $ref: '#/components/schemas/Tradability'
+                              sellTradabilityForTrading:
+                                $ref: '#/components/schemas/Tradability'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /securities/{isin}/buyable:
+    get:
+      summary: Is security buyable
+      operationId: isSecurityBuyable
+      description: |
+        Checks whether a security can be bought across all portfolios (optionally filtered by custodian bank).
+        Uses `brokerPortfolios` (plural) — returns one entry per portfolio/custodian combination
+        (`isSecurityBuyable` operation).
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: isin
+          in: path
+          required: true
+          schema:
+            type: string
+          example: NL0010273215
+        - name: custodianBanks
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of custodian bank identifiers to filter by (e.g. `SCALABLE`). Omit for all.
+      responses:
+        '200':
+          description: Buyability per portfolio
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      brokerPortfolios:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            custodianBank:
+                              type: string
+                            security:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                buyTradabilityForTrading:
+                                  $ref: '#/components/schemas/Tradability'
+                                buyTradability:
+                                  $ref: '#/components/schemas/Tradability'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /portfolio/inventory:
+    get:
+      summary: Portfolio groups inventory
+      operationId: getPortfolioGroupsInventory
+      description: |
+        Returns the full portfolio inventory organised by portfolio groups, including per-group
+        performance and savings plan amounts. Each security includes current quote tick and holdings
+        (`getPortfolioGroupsInventory` operation).
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Portfolio inventory
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          inventory:
+                            type: object
+                            properties:
+                              portfolioGroups:
+                                type: object
+                                properties:
+                                  maxPortfolioGroupsPerPortfolioReached:
+                                    type: boolean
+                                  offerAllowsAdditionalPortfolioGroup:
+                                    type: boolean
+                                  items:
+                                    type: array
+                                    items:
+                                      type: object
+                                      properties:
+                                        id:
+                                          type: string
+                                        details:
+                                          type: object
+                                          properties:
+                                            id:
+                                              type: string
+                                            name:
+                                              type: string
+                                            description:
+                                              type: string
+                                        numberOfPendingOrders:
+                                          type: number
+                                        savingsPlansAmount:
+                                          type: number
+                                        performance:
+                                          type: object
+                                          properties:
+                                            valuation:
+                                              type: number
+                                            performancesByTimeframe:
+                                              type: array
+                                              items:
+                                                $ref: '#/components/schemas/PerformanceByTimeframe'
+                                        items:
+                                          type: array
+                                          description: Securities in this group.
+                                          items:
+                                            allOf:
+                                              - $ref: '#/components/schemas/SecurityInfo'
+                                              - type: object
+                                                properties:
+                                                  quoteTick:
+                                                    $ref: '#/components/schemas/SecurityQuoteTick'
+                              ungroupedInventoryItems:
+                                type: object
+                                properties:
+                                  items:
+                                    type: array
+                                    items:
+                                      allOf:
+                                        - $ref: '#/components/schemas/SecurityInfo'
+                                        - type: object
+                                          properties:
+                                            quoteTick:
+                                              $ref: '#/components/schemas/SecurityQuoteTick'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /portfolio/watchlist:
+    get:
+      summary: Watchlist
+      operationId: getSuspenseWatchlist
+      description: |
+        Returns all securities on the portfolio watchlist, each with current quote tick and holdings
+        (`getSuspenseWatchlist` operation).
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Watchlist securities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          watchlist:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              items:
+                                type: array
+                                items:
+                                  allOf:
+                                    - $ref: '#/components/schemas/SecurityInfo'
+                                    - type: object
+                                      properties:
+                                        quoteTick:
+                                          $ref: '#/components/schemas/SecurityQuoteTick'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /portfolio/cash:
+    get:
+      summary: Cash breakdown
+      operationId: getCashBreakdown
+      description: |
+        Returns a detailed breakdown of buying power, derivatives buying power, and withdrawal power
+        (`getCashBreakdown` operation).
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Cash breakdown
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          payments:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              buyingPower:
+                                $ref: '#/components/schemas/BuyingPower'
+                              derivativesBuyingPower:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                  cashAvailableToInvest:
+                                    type: number
+                                  derivativesDirectDebit:
+                                    type: number
+                                  cashAvailableForDerivatives:
+                                    type: number
+                              withdrawalPower:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                  cashAvailableToInvest:
+                                    type: number
+                                  sellTradesAmount:
+                                    type: number
+                                  withdrawalDirectDebit:
+                                    type: number
+                                  cashAvailableForWithdrawal:
+                                    type: number
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /portfolio/interest-rates:
+    get:
+      summary: Interest rates
+      operationId: getInterestRates
+      description: |
+        Returns current deposit and overdraft interest rates for the portfolio
+        (`getInterests` operation).
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Interest rates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          interests:
+                            type: object
+                            properties:
+                              depositInterestRate:
+                                type: number
+                                example: 0.02
+                              effectiveYearlyDepositInterestRate:
+                                type: number
+                                example: 0.0202
+                              grantedOverdraftInterestRate:
+                                type: number
+                                example: 0.0324
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /portfolio/pending-orders:
+    get:
+      summary: Pending orders count
+      operationId: getPendingOrders
+      description: Returns the total number of pending orders in the portfolio (`queryPendingOrders` operation).
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Pending orders count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          numberOfPendingOrders:
+                            type: number
+                            example: 0
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /portfolio/appropriateness:
+    get:
+      summary: Appropriateness result
+      operationId: getAppropriatenessResult
+      description: |
+        Returns the MiFID II appropriateness assessment result for the portfolio
+        (`getAppropriatenessResult` operation).
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Appropriateness assessment
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          appropriatenessInfo:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              appropriatenessId:
+                                type: string
+                              result:
+                                type: string
+                                example: NOT_APPROPRIATE
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /portfolio/crypto-performance:
+    get:
+      summary: Crypto performance
+      operationId: getCryptoPerformance
+      description: |
+        Returns crypto holdings valuation and unrealised return since buy
+        (`getCryptoPerformance` operation). Values are 0 if no crypto is held.
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Crypto performance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          valuation:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              cryptoValuation:
+                                type: number
+                                example: 0
+                              cryptoUnrealisedReturnSinceBuy:
+                                type: object
+                                properties:
+                                  absoluteUnrealisedReturn:
+                                    type: number
+                                  relativeUnrealisedReturn:
+                                    type: number
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
+  /portfolio/timeseries:
+    get:
+      summary: Portfolio time-weighted return timeseries
+      operationId: getPortfolioTimeseries
+      description: |
+        Returns portfolio value and absolute return time series across all standard timeframes
+        (`timeWeightedReturn` operation). Each timeframe has a closing reference point and a list of
+        intraday/daily data points.
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: includeYearToDate
+          in: query
+          schema:
+            type: boolean
+          description: When true, includes the YEAR_TO_DATE timeframe in the response.
+      responses:
+        '200':
+          description: Portfolio timeseries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          timeseries:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/PortfolioTimeseriesOverTime'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
