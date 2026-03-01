@@ -25,8 +25,6 @@ The server listens on `http://127.0.0.1:3141` (loopback only, not exposed to the
 
 ## API Reference
 
-See **[API.md](API.md)** for the full endpoint reference with request/response examples.
-
 Once the server is running, interactive docs are also available at **http://127.0.0.1:3141/docs** (raw OpenAPI spec at `/openapi.json`).
 
 ## Authentication Flow
