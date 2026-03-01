@@ -130,9 +130,15 @@ class WebSocketManager {
         this.send({ type: 'pong' });
         break;
 
-      case 'error':
+      case 'error': {
         console.error('[wsManager] Subscription error for', msg.id, ':', JSON.stringify(msg.payload));
+        const errors = msg.payload as Array<{ extensions?: { code?: string } }> | undefined;
+        if (errors?.some((e) => e.extensions?.code === 'UNAUTHENTICATED')) {
+          console.warn('[wsManager] Session expired — closing WebSocket to reconnect with fresh cookies');
+          this.ws?.close();
+        }
         break;
+      }
 
       case 'complete':
         console.log('[wsManager] Subscription completed by server for', msg.id);
