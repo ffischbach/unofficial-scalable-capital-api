@@ -50,6 +50,11 @@ class SubscriptionManager {
   private listeners = new Set<Listener>();
   private subscriptionId = '';
   private reconnectTimer: NodeJS.Timeout | null = null;
+  private lastValuation: RealTimeValuation | null = null;
+
+  getLastValuation(): RealTimeValuation | null {
+    return this.lastValuation;
+  }
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
@@ -130,6 +135,7 @@ class SubscriptionManager {
           msg.payload as { data?: { realTimeValuation?: RealTimeValuation } }
         )?.data?.realTimeValuation;
         if (valuation) {
+          this.lastValuation = valuation;
           for (const listener of this.listeners) listener(valuation);
         }
         break;
