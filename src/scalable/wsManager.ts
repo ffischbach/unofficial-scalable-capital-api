@@ -2,8 +2,7 @@ import WebSocket from 'ws';
 import { getSession } from '../auth/session.ts';
 
 const WS_URL = 'wss://de.scalable.capital/broker/subscriptions';
-const USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const USER_AGENT = 'unofficial-sc-api/0.1.0 (https://github.com/ffischbach/unofficial-scalable-capital-api)';
 const RECONNECT_DELAY_MS = 5_000;
 
 interface RegisteredSub {
