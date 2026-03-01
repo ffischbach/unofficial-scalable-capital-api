@@ -48,14 +48,102 @@ components:
         expiresAt:
           type: number
 
+    RealTimeValuation:
+      type: object
+      description: |
+        A single valuation tick received from Scalable Capital's `realTimeValuation` GraphQL subscription.
+        This is the payload carried in each SSE `data:` event on `/valuation/stream`.
+      required:
+        - id
+        - timestampUtc
+        - valuation
+        - securitiesValuation
+        - unrealisedReturn
+        - cryptoValuation
+        - lastInventoryUpdateTimestampUtc
+        - timeWeightedReturnByTimeframe
+      properties:
+        id:
+          type: string
+          description: Opaque identifier for this valuation tick (UUID assigned by Scalable Capital).
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        timestampUtc:
+          type: object
+          description: When this tick was produced by Scalable Capital's backend.
+          required: [time, epochMillisecond]
+          properties:
+            time:
+              type: string
+              description: ISO-8601 datetime string.
+              example: "2024-11-15T14:32:10.123Z"
+            epochMillisecond:
+              type: number
+              description: Unix timestamp in milliseconds.
+              example: 1731678730123
+        valuation:
+          type: number
+          description: Total portfolio value in account currency (EUR).
+          example: 12543.87
+        securitiesValuation:
+          type: number
+          description: Value of securities (stocks/ETFs) portion of the portfolio.
+          example: 11200.00
+        unrealisedReturn:
+          type: object
+          description: Unrealised profit/loss on current holdings.
+          required: [absoluteUnrealisedReturn, relativeUnrealisedReturn]
+          properties:
+            absoluteUnrealisedReturn:
+              type: number
+              description: Absolute P&L in account currency.
+              example: 1543.87
+            relativeUnrealisedReturn:
+              type: number
+              description: Relative P&L as a decimal fraction (e.g. 0.14 = 14%).
+              example: 0.1401
+        cryptoValuation:
+          type: number
+          description: Value of cryptocurrency holdings; 0 if none.
+          example: 0
+        lastInventoryUpdateTimestampUtc:
+          type: object
+          description: When the portfolio inventory was last updated.
+          required: [epochSecond]
+          properties:
+            epochSecond:
+              type: number
+              description: Unix timestamp in seconds.
+              example: 1731678720
+        timeWeightedReturnByTimeframe:
+          type: array
+          description: Time-weighted return broken down by standard timeframes (e.g. "1D", "1W", "1M", "1Y", "MAX").
+          items:
+            type: object
+            required: [timeframe, performance, simpleAbsoluteReturn]
+            properties:
+              timeframe:
+                type: string
+                example: "1D"
+              performance:
+                type: number
+                description: Relative TWR for the timeframe as a decimal fraction.
+                example: 0.0032
+              simpleAbsoluteReturn:
+                type: number
+                description: Absolute return in account currency for the timeframe.
+                example: 39.87
+
     PortfolioValuation:
       type: object
+      description: |
+        Valuation snapshot returned by `GET /portfolio`. Wraps a `RealTimeValuation` tick with a
+        `source` field indicating whether the data is live (WebSocket) or stale (login snapshot).
       required: [source, valuation]
       properties:
         source:
           type: string
           enum: [realtime, session]
-          description: '"realtime" if data came from the WebSocket subscription tick, "session" if from login snapshot.'
+          description: '"realtime" if data came from the WebSocket subscription tick, "session" if from the login snapshot (no tick received yet).'
         valuation:
           type: number
           description: Total portfolio value in account currency.
@@ -88,6 +176,106 @@ components:
               type: string
             epochMillisecond:
               type: number
+
+    QuoteTick:
+      type: object
+      description: |
+        A single quote tick received from Scalable Capital's `realTimeQuoteTicks` GraphQL subscription.
+        This is the payload carried in each SSE `data:` event on `/quotes/stream`.
+      required:
+        - id
+        - isin
+        - midPrice
+        - time
+        - currency
+        - bidPrice
+        - askPrice
+        - isOutdated
+        - timestampUtc
+        - performancesByTimeframe
+      properties:
+        id:
+          type: string
+          description: Opaque identifier for this quote tick.
+          example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+        isin:
+          type: string
+          description: ISIN of the instrument.
+          example: "US02079K3059"
+        midPrice:
+          type: number
+          description: Mid price of the instrument.
+          example: 189.45
+        time:
+          type: string
+          description: Local datetime without timezone (format "YYYY-MM-DDTHH:mm:ss").
+          example: "2026-02-27T22:59:57"
+        currency:
+          type: string
+          description: Currency code for the prices.
+          example: "EUR"
+        bidPrice:
+          type: number
+          description: Current bid price.
+          example: 189.40
+        askPrice:
+          type: number
+          description: Current ask price.
+          example: 189.50
+        isOutdated:
+          type: boolean
+          description: Whether the price data is considered outdated by the upstream service.
+          example: false
+        timestampUtc:
+          type: object
+          description: When this tick was produced by Scalable Capital's backend.
+          required: [time, epochMillisecond]
+          properties:
+            time:
+              type: string
+              description: ISO-8601 datetime string.
+              example: "2026-02-27T21:59:57.000Z"
+            epochMillisecond:
+              type: number
+              description: Unix timestamp in milliseconds.
+              example: 1740697197000
+        performanceDate:
+          type: object
+          nullable: true
+          description: Reference date for performance calculations; may be null for some instruments.
+          properties:
+            date:
+              type: string
+              description: Date in YYYY-MM-DD format.
+              example: "2026-02-27"
+        performancesByTimeframe:
+          type: array
+          description: Performance figures broken down by standard timeframes.
+          items:
+            type: object
+            required: [timeframe, performance, simpleAbsoluteReturn]
+            properties:
+              timeframe:
+                type: string
+                enum:
+                  - INTRADAY
+                  - TWO_DAYS
+                  - ONE_WEEK
+                  - ONE_MONTH
+                  - THREE_MONTHS
+                  - SIX_MONTHS
+                  - ONE_YEAR
+                  - YEAR_TO_DATE
+                  - MAX
+                example: "INTRADAY"
+              performance:
+                type: number
+                description: Relative performance as a decimal fraction (e.g. 0.0032 = 0.32%).
+                example: 0.0032
+              simpleAbsoluteReturn:
+                type: number
+                description: Absolute return in account currency.
+                example: 0.61
 
     GraphQLRequest:
       type: object
@@ -217,22 +405,45 @@ paths:
       summary: Real-time valuation stream (SSE)
       operationId: getValuationStream
       description: |
-        Server-Sent Events stream of real-time portfolio valuation ticks from the Scalable Capital WebSocket subscription.
-        Each event is a JSON-encoded RealTimeValuation object.
+        Server-Sent Events (SSE) stream of real-time portfolio valuation ticks sourced from
+        Scalable Capital's `realTimeValuation` GraphQL subscription over WebSocket.
+
+        **SSE event format** — each event is an unnamed SSE message (no `event:` field):
+        ```
+        data: {"id":"3fa85f64-…","valuation":12543.87,"securitiesValuation":11200.00,…}\n\n
+        ```
+        The WebSocket connection is opened lazily on the first listener and closed automatically
+        when the last client disconnects. If the upstream WebSocket drops, the server reconnects
+        after 5 s — the SSE connection remains open during that window (no data will flow until
+        the subscription resumes).
 
         **curl:** `curl -N http://127.0.0.1:3141/valuation/stream`
+
+        **EventSource (browser / Node.js):**
+        ```js
+        const es = new EventSource('http://127.0.0.1:3141/valuation/stream');
+        es.onmessage = (e) => console.log(JSON.parse(e.data));
+        ```
       security:
         - GatewayToken: []
       responses:
         '200':
-          description: SSE stream
+          description: |
+            Long-lived SSE stream. Each unnamed `data:` event carries a JSON-encoded
+            `RealTimeValuation` object. The stream stays open until the client disconnects.
           content:
             text/event-stream:
               schema:
                 type: string
-                description: Newline-delimited SSE events, each containing a JSON RealTimeValuation payload.
+                description: |
+                  RFC 8895 Server-Sent Events stream. Each event has the form:
+                  `data: <JSON>\n\n`
+                  where `<JSON>` is a serialised `RealTimeValuation` object.
+              example: |
+                data: {"id":"3fa85f64-5717-4562-b3fc-2c963f66afa6","timestampUtc":{"time":"2024-11-15T14:32:10.123Z","epochMillisecond":1731678730123},"valuation":12543.87,"securitiesValuation":11200.00,"unrealisedReturn":{"absoluteUnrealisedReturn":1543.87,"relativeUnrealisedReturn":0.1401},"cryptoValuation":0,"lastInventoryUpdateTimestampUtc":{"epochSecond":1731678720},"timeWeightedReturnByTimeframe":[{"timeframe":"1D","performance":0.0032,"simpleAbsoluteReturn":39.87}]}
+
         '401':
-          description: Not authenticated
+          description: Not authenticated (no valid session or invalid gateway token). Returned before the SSE stream is opened.
           content:
             application/json:
               schema:
@@ -256,6 +467,69 @@ paths:
                 $ref: '#/components/schemas/PortfolioValuation'
         '401':
           description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /quotes/stream:
+    get:
+      summary: Real-time quote tick stream (SSE)
+      operationId: getQuotesStream
+      description: |
+        Server-Sent Events (SSE) stream of real-time bid/ask/mid price ticks for a list of ISINs,
+        sourced from Scalable Capital's `realTimeQuoteTicks` GraphQL subscription over WebSocket.
+
+        Each SSE connection opens its own dedicated WebSocket subscription and closes it when the
+        client disconnects. No auto-reconnect on the server side — the browser `EventSource` will
+        retry automatically.
+
+        **SSE event format** — each event is an unnamed SSE message (no `event:` field):
+        ```
+        data: {"id":"…","isin":"US02079K3059","midPrice":189.45,…}\n\n
+        ```
+
+        **curl:** `curl -N "http://127.0.0.1:3141/quotes/stream?isins=US02079K3059,US0231351067"`
+
+        **EventSource (browser / Node.js):**
+        ```js
+        const es = new EventSource('http://127.0.0.1:3141/quotes/stream?isins=US02079K3059');
+        es.onmessage = (e) => console.log(JSON.parse(e.data));
+        ```
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: isins
+          in: query
+          required: true
+          description: Comma-separated list of ISINs to subscribe to.
+          schema:
+            type: string
+          example: "US02079K3059,US0231351067"
+      responses:
+        '200':
+          description: |
+            Long-lived SSE stream. Each unnamed `data:` event carries a JSON-encoded
+            `QuoteTick` object. The stream stays open until the client disconnects.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  RFC 8895 Server-Sent Events stream. Each event has the form:
+                  `data: <JSON>\n\n`
+                  where `<JSON>` is a serialised `QuoteTick` object.
+              example: |
+                data: {"id":"3fa85f64-5717-4562-b3fc-2c963f66afa6","isin":"US02079K3059","midPrice":189.45,"time":"2026-02-27T22:59:57","currency":"EUR","bidPrice":189.40,"askPrice":189.50,"isOutdated":false,"timestampUtc":{"time":"2026-02-27T21:59:57.000Z","epochMillisecond":1740697197000},"performanceDate":{"date":"2026-02-27"},"performancesByTimeframe":[{"timeframe":"INTRADAY","performance":0.0032,"simpleAbsoluteReturn":0.61}]}
+
+        '400':
+          description: Missing or empty `isins` query parameter.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated (no valid session or invalid gateway token). Returned before the SSE stream is opened.
           content:
             application/json:
               schema:
