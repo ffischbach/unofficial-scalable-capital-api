@@ -28,17 +28,11 @@ const app = createApp(config);
 const server = app.listen(port, '127.0.0.1', () => {
   console.log('');
   console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║    Unofficial Scalable Capital API Gateway        ║');
+  console.log('║  Unofficial Scalable Capital API Gateway         ║');
   console.log('╠══════════════════════════════════════════════════╣');
-  console.log(`║  Listening on  http://127.0.0.1:${port}             ║`);
+  console.log(`║  Listening on http://127.0.0.1:${port}              ║`);
   console.log('╠══════════════════════════════════════════════════╣');
-  console.log('║  Endpoints:                                       ║');
-  console.log('║    GET  /health                                   ║');
-  console.log('║    GET  /auth/status                              ║');
-  console.log('║    POST /auth/login                               ║');
-  console.log('║    DEL  /auth/logout                              ║');
-  console.log('║    POST /proxy                                    ║');
-  console.log('║    GET  /valuation/stream   (SSE)                 ║');
+  console.log(`║  Endpoints: http://127.0.0.1:${port}/docs           ║`);
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
   if (token) {
