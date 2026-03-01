@@ -1,6 +1,6 @@
 # Unofficial Scalable Capital API
 
-> **Disclaimer:** This project is not affiliated with or endorsed by Scalable Capital GmbH. It reverse-engineers their private, undocumented GraphQL API — which means it may break without notice whenever they update their web app. Use it for personal automation only and never share your credentials or session file.
+> **⚠️ Legal warning:** This project may violates Scalable Capital's Terms of Service. Using it may result in the suspension or termination of your brokerage account. Use at your own risk. This project is not affiliated with or endorsed by Scalable Capital GmbH. This API may break without notice whenever the official API changes. The authors accept no liability for any damages or account actions resulting from its use.
 
 Scalable Capital doesn't offer a public API. This project fills that gap: it's a local HTTP proxy that handles authentication (including 2FA) via a headed browser window, then exposes your portfolio data through a simple REST API on `localhost`. Your credentials never leave your machine.
 
