@@ -38,6 +38,7 @@ const server = app.listen(port, '127.0.0.1', () => {
   console.log('║    POST /auth/login                               ║');
   console.log('║    DEL  /auth/logout                              ║');
   console.log('║    POST /proxy                                    ║');
+  console.log('║    GET  /valuation/stream   (SSE)                 ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
   if (token) {
