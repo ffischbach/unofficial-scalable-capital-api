@@ -5,6 +5,7 @@ import authRouter from './routes/auth.ts';
 import proxyRouter from './routes/proxy.ts';
 import valuationRouter from './routes/valuation.ts';
 import portfolioRouter from './routes/portfolio.ts';
+import quotesRouter from './routes/quotes.ts';
 import { spec, scalarMiddleware } from './openapi.ts';
 import type { GatewayConfig } from '../types.ts';
 
@@ -45,6 +46,7 @@ export function createApp(config: GatewayConfig): express.Application {
   app.use('/proxy', proxyRouter);
   app.use('/valuation', valuationRouter);
   app.use('/portfolio', portfolioRouter);
+  app.use('/quotes', quotesRouter);
 
   // Error handler — must be last
   app.use(errorHandler);
