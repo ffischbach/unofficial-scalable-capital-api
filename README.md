@@ -12,6 +12,17 @@ Scalable Capital doesn't offer a public API. This project fills that gap: it's a
 - **Custom analytics** — calculate metrics Scalable doesn't show (e.g. time-weighted returns, sector allocation) using your own scripts
 - **Portfolio snapshots** — schedule a cron job to record daily valuations for long-term tracking
 
+## Available data
+
+| Category | Data |
+|----------|------|
+| **Portfolio valuation** | Total value, securities valuation, crypto valuation, unrealised return (absolute + relative) |
+| **Performance** | Time-weighted returns by timeframe: 1D, 1W, 1M, YTD, ALL — absolute and relative |
+| **Live valuation** | Real-time total portfolio value streamed via SSE as it changes |
+| **Live quotes** | Bid, ask, and mid price per ISIN with per-timeframe performance, streamed via SSE |
+| **Transactions** | Full history with type, status, date, description, amount, ISIN, and buy/sell side; cursor-paginated |
+| **Transaction details** | Individual transaction breakdown by ID |
+
 ## Prerequisites
 
 - Node.js 22+
