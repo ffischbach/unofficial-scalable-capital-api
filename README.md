@@ -39,6 +39,50 @@ The server listens on `http://127.0.0.1:3141` (loopback only, not exposed to the
 | `POST` | `/auth/login` | No | Start interactive login |
 | `DELETE` | `/auth/logout` | No | Clear session |
 | `POST` | `/proxy` | Yes | Raw GraphQL passthrough |
+| `GET` | `/valuation/stream` | Yes | Real-time portfolio valuation (SSE) |
+
+### GET /valuation/stream
+
+Server-Sent Events stream of live portfolio data pushed by Scalable Capital. Opens a single upstream WebSocket (`wss://de.scalable.capital/broker/subscriptions`) shared across all connected clients, and fans out each `realTimeValuation` event as an SSE message.
+
+**curl:**
+```bash
+curl -N http://127.0.0.1:3141/valuation/stream
+```
+
+**Browser / JavaScript:**
+```js
+const es = new EventSource('http://127.0.0.1:3141/valuation/stream');
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log(data.valuation);           // total portfolio value
+  console.log(data.securitiesValuation); // equities/ETF portion
+  console.log(data.unrealisedReturn);    // { absoluteUnrealisedReturn, relativeUnrealisedReturn }
+  console.log(data.timeWeightedReturnByTimeframe); // INTRADAY, ONE_WEEK, ONE_MONTH, …
+};
+
+es.onerror = () => es.close();
+```
+
+**Node.js:**
+```js
+const res = await fetch('http://127.0.0.1:3141/valuation/stream');
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  for (const line of decoder.decode(value).split('\n')) {
+    if (line.startsWith('data: ')) {
+      console.log(JSON.parse(line.slice(6)));
+    }
+  }
+}
+```
+
+The upstream WebSocket connects lazily on the first client connection and disconnects automatically when the last client disconnects. It reconnects automatically after 5 seconds if the connection drops.
 
 ### POST /proxy
 
