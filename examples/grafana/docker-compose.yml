@@ -1,0 +1,35 @@
+# examples/grafana/docker-compose.yml
+#
+# Spin up a Grafana instance pre-configured to display your Scalable Capital portfolio.
+# The API server must be running on the host before launching Grafana.
+#
+# Usage:
+#   cd examples/grafana
+#   docker compose up -d
+#   open http://localhost:3000   (admin / admin)
+#
+# If you started the API with --token, pass it before starting:
+#   GATEWAY_TOKEN=my-secret 
+#   docker compose up -d
+
+services:
+  grafana:
+    image: grafana/grafana:12.4.0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource 3.7.2
+      # Set this if you started the API server with --token:
+      GATEWAY_TOKEN: ${GATEWAY_TOKEN:-}
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./dashboards:/var/lib/grafana/dashboards:ro
+    extra_hosts:
+      # Allows Grafana to reach services running on the host machine.
+      # Works on Linux and Docker Desktop (Mac/Windows).
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  grafana-data:

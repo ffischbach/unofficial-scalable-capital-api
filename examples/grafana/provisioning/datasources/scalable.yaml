@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: Scalable Capital
+    type: yesoreyeram-infinity-datasource
+    uid: scalable
+    access: proxy
+    url: http://host.docker.internal:3141
+    isDefault: true
+    editable: true
+    jsonData:
+      allowedHosts:
+        - http://host.docker.internal:3141
+      # Uncomment if you started the server with --token:
+      # httpHeaderName1: X-Gateway-Token
+    secureJsonData:
+      # httpHeaderValue1: ${GATEWAY_TOKEN}

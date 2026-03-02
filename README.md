@@ -1,5 +1,10 @@
 # Unofficial Scalable Capital API
 
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-22+-339933?logo=node.js&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Unofficial](https://img.shields.io/badge/status-unofficial-orange)
+
 > **⚠️ Legal warning:** This project may violates Scalable Capital's Terms of Service. Using it may result in the suspension or termination of your brokerage account. Use at your own risk. This project is not affiliated with or endorsed by Scalable Capital GmbH. This API may break without notice whenever the official API changes. The authors accept no liability for any damages or account actions resulting from its use.
 
 Scalable Capital doesn't offer a public API. This project fills that gap: it's a local HTTP proxy that handles authentication (including 2FA) via a headed browser window, then exposes your portfolio data through a simple REST API on `localhost`. Your credentials never leave your machine.
@@ -22,6 +27,16 @@ Scalable Capital doesn't offer a public API. This project fills that gap: it's a
 | **Live quotes** | Bid, ask, and mid price per ISIN with per-timeframe performance, streamed via SSE |
 | **Transactions** | Full history with type, status, date, description, amount, ISIN, and buy/sell side; cursor-paginated |
 | **Transaction details** | Individual transaction breakdown by ID |
+
+## Examples
+
+Ready-to-run scripts are in the [`examples/`](./examples) directory:
+
+| Script | Description |
+|--------|-------------|
+| [`price-alert.ts`](./examples/price-alert.ts) | Desktop notification when a quote crosses a price threshold |
+| [`export-transactions-csv.ts`](./examples/export-transactions-csv.ts) | Export your full transaction history to a CSV file |
+| [`grafana/`](./examples/grafana) | Live Grafana dashboard — spin up with `docker compose up` |
 
 ## Prerequisites
 
