@@ -138,6 +138,8 @@ components:
       description: |
         Valuation snapshot returned by `GET /portfolio`. Wraps a `RealTimeValuation` tick with a
         `source` field indicating whether the data is live (WebSocket) or stale (login snapshot).
+        The realtime value is cached for up to 30 seconds (`source: "realtime"`); stale responses
+        fall back to the valuation captured at login time (`source: "session"`).
       required: [source, valuation]
       properties:
         source:
@@ -792,8 +794,10 @@ paths:
       summary: Current portfolio valuation snapshot
       operationId: getPortfolio
       description: |
-        Returns the most recent valuation data. Uses the last WebSocket subscription tick if available,
-        otherwise falls back to the valuation captured at login time.
+        Returns the most recent valuation data. The last WebSocket subscription tick is served from
+        an in-memory cache for up to 30 seconds. If the cached value is older than 30 seconds (or not
+        yet available), the endpoint opens a temporary subscription and waits up to 10 seconds for a
+        fresh tick. Falls back to the valuation captured at login time if no realtime data arrives.
       security:
         - GatewayToken: []
       responses:

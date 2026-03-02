@@ -34,24 +34,32 @@ export interface RealTimeValuation {
 
 type Listener = (data: RealTimeValuation) => void;
 
+/** How long a cached valuation is considered fresh for GET /portfolio. */
+const VALUATION_CACHE_TTL_MS = 30_000;
+
 class SubscriptionManager {
   private listeners = new Set<Listener>();
   private subId: string | null = null;
   private lastValuation: RealTimeValuation | null = null;
+  private lastReceivedAt: number | null = null;
 
   getLastValuation(): RealTimeValuation | null {
     return this.lastValuation;
   }
 
-  fetchLatest(timeoutMs = 3000): Promise<RealTimeValuation | null> {
-    if (this.lastValuation) return Promise.resolve(this.lastValuation);
+  fetchLatest(timeoutMs = 10_000, maxAgeMs = VALUATION_CACHE_TTL_MS): Promise<RealTimeValuation | null> {
+    if (this.lastValuation && this.lastReceivedAt && Date.now() - this.lastReceivedAt < maxAgeMs) {
+      return Promise.resolve(this.lastValuation);
+    }
     return new Promise((resolve) => {
-      const timer = setTimeout(() => { unsub(); resolve(null); }, timeoutMs);
       const unsub = this.subscribe((val) => {
         clearTimeout(timer);
         unsub();
         resolve(val);
       });
+      // On timeout: resolve null but keep the subscription alive so the WS
+      // stays connected and lastValuation gets populated for the next request.
+      const timer = setTimeout(() => resolve(null), timeoutMs);
     });
   }
 
@@ -75,6 +83,7 @@ class SubscriptionManager {
           const val = (data as { realTimeValuation?: RealTimeValuation })?.realTimeValuation;
           if (val) {
             this.lastValuation = val;
+            this.lastReceivedAt = Date.now();
             for (const l of this.listeners) l(val);
           }
         },
