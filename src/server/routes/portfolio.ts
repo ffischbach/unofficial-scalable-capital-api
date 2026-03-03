@@ -18,7 +18,7 @@ const router = Router();
 
 // GET /portfolio — current portfolio valuation snapshot
 // Returns the latest value received from the realTimeValuation WebSocket subscription,
-// cached for up to 30 s. Falls back to the session valuation if no realtime data is available.
+// cached for up to 30 s. Returns { source: 'unavailable' } if no realtime data is available.
 router.get('/', requireSession, async (_req, res) => {
   const realtime = await subscriptionManager.fetchLatest();
 
