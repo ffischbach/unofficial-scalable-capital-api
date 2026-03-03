@@ -104,15 +104,56 @@ With the `--token` flag set, add `-H "X-Gateway-Token: <your-token>"` to every r
 
 ## CLI Options
 
-| Flag      | Default | Description                                               |
-|-----------|---------|-----------------------------------------------------------|
-| `--port`  | `3141`  | Port to listen on                                         |
-| `--token` | (none)  | Require `X-Gateway-Token` header on all non-auth requests |
+| Flag        | Default | Description                                               |
+|-------------|---------|-----------------------------------------------------------|
+| `--port`    | `3141`  | Port to listen on                                         |
+| `--token`   | (none)  | Require `X-Gateway-Token` header on all non-auth requests |
+| `--monitor` | off     | Enable API change detection (writes to `api-changes.json`) |
 
 ## Session Security
 
 `session.json` contains your authentication cookies with full account access. It is written with mode `0600` (owner read/write only) and excluded from git. Never share or commit it.
 
-## Stability
+## API Change Detection
 
-This project targets Scalable Capital's internal API, which is not publicly documented and can change at any time. If requests start failing after a Scalable app update, the GraphQL query shapes or authentication flow may need to be updated.
+Scalable Capital's internal API is not publicly documented and can change at any time. This project includes an opt-in monitor that detects structural changes to every GraphQL response and WebSocket subscription message before they silently break things.
+
+```bash
+npm run dev -- --monitor
+```
+
+When a change is detected it is logged to the console and appended to `api-changes.json` (one unique entry per change, survives restarts).
+
+### Reporting changes as GitHub issues
+
+After the server has collected changes, pick the option that fits your setup:
+
+```bash
+# Automatic — files issues via the gh CLI, writes URLs back to api-changes.json
+npm run report-changes
+
+# Copy-paste — prints ready-to-paste title + body for each pending change
+npm run report-changes:print
+```
+
+Both commands read `api-changes.json` and skip entries that already have an issue URL. The automatic mode requires the [`gh` CLI](https://cli.github.com/) to be installed and authenticated (`gh auth login`). The copy-paste mode opens `https://github.com/ffischbach/unofficial-scalabale-capital-api/issues/new` and you paste the printed title and body — no tooling needed.
+
+### If an endpoint breaks for you
+
+1. Check `api-changes.json` — each entry shows the operation name, JSON path, and kind of change (`added` / `removed` / `type-changed`)
+2. Look for a matching [open issue](https://github.com/ffischbach/unofficial-scalabale-capital-api/issues)
+3. If not, run `npm run report-changes` or [open one manually](https://github.com/ffischbach/unofficial-scalabale-capital-api/issues/new) with the relevant entry from `api-changes.json`
+
+### Re-baselining after a fix is merged
+
+Open `api-snapshot.json` in an editor and delete the key for the fixed operation. Or use `jq`:
+
+```bash
+# Remove one operation's baseline (keeps all others intact)
+jq 'del(.["<OperationName>"])' api-snapshot.json > tmp.json && mv tmp.json api-snapshot.json
+
+# Or wipe everything and re-snapshot from scratch
+rm api-snapshot.json api-changes.json
+```
+
+Restart the server — it will re-snapshot on the next request.

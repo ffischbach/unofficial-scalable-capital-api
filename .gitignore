@@ -5,3 +5,5 @@ session.json
 .idea/
 *.iml
 /graphql-apis/
+api-changes.json
+*.tmp
