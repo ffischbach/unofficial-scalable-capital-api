@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "report-changes": "tsx scripts/report-changes.ts",
+    "report-changes:print": "tsx scripts/report-changes.ts --print"
   },
   "dependencies": {
     "@scalar/express-api-reference": "^0.8.46",
