@@ -1,0 +1,753 @@
+{
+  "getSecurity": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "security": {
+          "id": "string",
+          "isin": "string",
+          "wkn": "string",
+          "name": "string",
+          "type": "string",
+          "availabilityForSavingsPlans": "string",
+          "isOnWatchlist": "boolean",
+          "isSustainable": "boolean",
+          "numberOfPendingOrders": "number",
+          "inventory": {
+            "id": "string",
+            "savingsPlan": "null",
+            "__typename": "string",
+            "position": {
+              "filled": "number",
+              "blocked": "number",
+              "pending": "number",
+              "sellableByVenue": {
+                "[item]": {
+                  "venue": "string",
+                  "sellable": "number",
+                  "__typename": "string"
+                }
+              },
+              "fifoPrice": "number",
+              "__typename": "string"
+            }
+          },
+          "portfolioGroupDetails": {
+            "id": "string",
+            "name": "string",
+            "__typename": "string"
+          },
+          "partnerType": "null",
+          "buyTradability": {
+            "id": "string",
+            "tradabilityStatus": "string",
+            "primaryVenue": {
+              "venue": "string",
+              "status": "string",
+              "__typename": "string"
+            },
+            "venues": {
+              "[item]": {
+                "venue": "string",
+                "tradabilityStatus": "string",
+                "unavailabilityReason": "null",
+                "__typename": "string"
+              }
+            },
+            "__typename": "string"
+          },
+          "sellTradability": {
+            "id": "string",
+            "tradabilityStatus": "string",
+            "primaryVenue": {
+              "venue": "string",
+              "status": "string",
+              "__typename": "string"
+            },
+            "venues": {
+              "[item]": {
+                "venue": "string",
+                "tradabilityStatus": "string",
+                "unavailabilityReason": "null",
+                "__typename": "string"
+              }
+            },
+            "__typename": "string"
+          },
+          "buyTradabilityForTrading": {
+            "id": "string",
+            "tradabilityStatus": "string",
+            "primaryVenue": {
+              "venue": "string",
+              "status": "string",
+              "__typename": "string"
+            },
+            "venues": {
+              "[item]": {
+                "venue": "string",
+                "tradabilityStatus": "string",
+                "unavailabilityReason": "null",
+                "__typename": "string"
+              }
+            },
+            "__typename": "string"
+          },
+          "sellTradabilityForTrading": {
+            "id": "string",
+            "tradabilityStatus": "string",
+            "primaryVenue": {
+              "venue": "string",
+              "status": "string",
+              "__typename": "string"
+            },
+            "venues": {
+              "[item]": {
+                "venue": "string",
+                "tradabilityStatus": "string",
+                "unavailabilityReason": "null",
+                "__typename": "string"
+              }
+            },
+            "__typename": "string"
+          },
+          "transferAvailability": {
+            "id": "string",
+            "isAvailable": "boolean",
+            "unavailabilityReason": "null",
+            "__typename": "string"
+          },
+          "liquidityBand": "string",
+          "underlying": "null",
+          "derivativesInfo": "null",
+          "__typename": "string",
+          "quoteTick": {
+            "id": "string",
+            "isin": "string",
+            "midPrice": "number",
+            "time": "string",
+            "currency": "string",
+            "bidPrice": "number",
+            "askPrice": "number",
+            "isOutdated": "boolean",
+            "timestampUtc": {
+              "time": "string",
+              "epochMillisecond": "number",
+              "__typename": "string"
+            },
+            "performanceDate": {
+              "date": "string",
+              "__typename": "string"
+            },
+            "performancesByTimeframe": {
+              "[item]": {
+                "timeframe": "string",
+                "performance": "number",
+                "simpleAbsoluteReturn": "number",
+                "__typename": "string"
+              }
+            },
+            "__typename": "string"
+          }
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "RealTimeValuation": {
+    "id": "string",
+    "timestampUtc": {
+      "time": "string",
+      "epochMillisecond": "number"
+    },
+    "valuation": "number",
+    "securitiesValuation": "number",
+    "unrealisedReturn": {
+      "absoluteUnrealisedReturn": "number",
+      "relativeUnrealisedReturn": "number"
+    },
+    "cryptoValuation": "number",
+    "lastInventoryUpdateTimestampUtc": {
+      "epochSecond": "number"
+    },
+    "timeWeightedReturnByTimeframe": {
+      "[item]": {
+        "timeframe": "string",
+        "performance": "number",
+        "simpleAbsoluteReturn": "number"
+      }
+    }
+  },
+  "realTimeQuoteTicks": {
+    "id": "string",
+    "isin": "string",
+    "midPrice": "number",
+    "time": "string",
+    "currency": "string",
+    "bidPrice": "number",
+    "askPrice": "number",
+    "isOutdated": "boolean",
+    "timestampUtc": {
+      "time": "string",
+      "epochMillisecond": "number"
+    },
+    "performanceDate": {
+      "date": "string"
+    },
+    "performancesByTimeframe": {
+      "[item]": {
+        "timeframe": "string",
+        "performance": "number",
+        "simpleAbsoluteReturn": "number"
+      }
+    }
+  },
+  "moreTransactions": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "moreTransactions": {
+          "cursor": "string",
+          "total": "number",
+          "transactions": {
+            "[item]": {
+              "id": "string",
+              "currency": "string",
+              "type": "string",
+              "status": "string",
+              "isCancellation": "boolean",
+              "lastEventDateTime": "string",
+              "description": "string",
+              "cashTransactionType": "string",
+              "amount": "number",
+              "relatedIsin": "null",
+              "__typename": "string"
+            }
+          },
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getSecurityInfo": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "security": {
+          "id": "string",
+          "isin": "string",
+          "wkn": "string",
+          "name": "string",
+          "type": "string",
+          "isSustainable": "boolean",
+          "isOnWatchlist": "boolean",
+          "numberOfPendingOrders": "number",
+          "inventory": "null",
+          "partnerType": "null",
+          "reimbursedFor": "array",
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getStaticSecurityInfo": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "security": {
+          "id": "string",
+          "isin": "string",
+          "wkn": "string",
+          "name": "string",
+          "type": "string",
+          "partnerType": "null",
+          "liquidityBand": "string",
+          "underlying": "null",
+          "derivativesInfo": "null",
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getSecurityTick": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "security": {
+          "id": "string",
+          "isin": "string",
+          "quoteTick": {
+            "id": "string",
+            "isin": "string",
+            "midPrice": "number",
+            "time": "string",
+            "currency": "string",
+            "bidPrice": "number",
+            "askPrice": "number",
+            "isOutdated": "boolean",
+            "timestampUtc": {
+              "time": "string",
+              "epochMillisecond": "number",
+              "__typename": "string"
+            },
+            "performanceDate": {
+              "date": "string",
+              "__typename": "string"
+            },
+            "performancesByTimeframe": {
+              "[item]": {
+                "timeframe": "string",
+                "performance": "number",
+                "simpleAbsoluteReturn": "number",
+                "__typename": "string"
+              }
+            },
+            "__typename": "string"
+          },
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getTimeSeriesBySecurity": {
+    "timeSeriesBySecurity": {
+      "[item]": {
+        "id": "string",
+        "closingReferencePoint": {
+          "timestampUtc": {
+            "time": "string",
+            "epochMillisecond": "number",
+            "__typename": "string"
+          },
+          "id": "string",
+          "midPrice": "number",
+          "__typename": "string"
+        },
+        "isin": "string",
+        "timeFrame": "string",
+        "currency": "string",
+        "source": "string",
+        "dataPoints": {
+          "[item]": {
+            "timestampUtc": {
+              "time": "string",
+              "epochMillisecond": "number",
+              "__typename": "string"
+            },
+            "id": "string",
+            "midPrice": "number",
+            "__typename": "string"
+          }
+        },
+        "__typename": "string"
+      }
+    }
+  },
+  "getTradingTradability": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "security": {
+          "id": "string",
+          "buyTradabilityForTrading": {
+            "id": "string",
+            "tradabilityStatus": "string",
+            "venues": {
+              "[item]": {
+                "venue": "string",
+                "tradabilityStatus": "string",
+                "unavailabilityReason": "null",
+                "__typename": "string"
+              }
+            },
+            "primaryVenue": {
+              "venue": "string",
+              "status": "string",
+              "__typename": "string"
+            },
+            "__typename": "string"
+          },
+          "sellTradabilityForTrading": {
+            "id": "string",
+            "tradabilityStatus": "string",
+            "venues": {
+              "[item]": {
+                "venue": "string",
+                "tradabilityStatus": "string",
+                "unavailabilityReason": "null",
+                "__typename": "string"
+              }
+            },
+            "primaryVenue": {
+              "venue": "string",
+              "status": "string",
+              "__typename": "string"
+            },
+            "__typename": "string"
+          },
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "isSecurityBuyable": {
+    "account": {
+      "id": "string",
+      "brokerPortfolios": {
+        "[item]": {
+          "id": "string",
+          "custodianBank": "string",
+          "security": {
+            "id": "string",
+            "buyTradabilityForTrading": {
+              "id": "string",
+              "tradabilityStatus": "string",
+              "__typename": "string"
+            },
+            "buyTradability": {
+              "id": "string",
+              "tradabilityStatus": "string",
+              "__typename": "string"
+            },
+            "__typename": "string"
+          },
+          "__typename": "string"
+        }
+      },
+      "__typename": "string"
+    }
+  },
+  "getPortfolioGroupsInventory": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "inventory": {
+          "id": "string",
+          "portfolioGroups": {
+            "id": "string",
+            "maxPortfolioGroupsPerPortfolioReached": "boolean",
+            "offerAllowsAdditionalPortfolioGroup": "boolean",
+            "items": {
+              "[item]": {
+                "id": "string",
+                "details": {
+                  "id": "string",
+                  "name": "string",
+                  "description": "null",
+                  "__typename": "string"
+                },
+                "items": {
+                  "[item]": {
+                    "id": "string",
+                    "isin": "string",
+                    "wkn": "string",
+                    "name": "string",
+                    "type": "string",
+                    "isSustainable": "boolean",
+                    "isOnWatchlist": "boolean",
+                    "numberOfPendingOrders": "number",
+                    "inventory": {
+                      "id": "string",
+                      "savingsPlan": "null",
+                      "__typename": "string",
+                      "position": {
+                        "filled": "number",
+                        "blocked": "number",
+                        "pending": "number",
+                        "sellableByVenue": {
+                          "[item]": {
+                            "venue": "string",
+                            "sellable": "number",
+                            "__typename": "string"
+                          }
+                        },
+                        "fifoPrice": "number",
+                        "__typename": "string"
+                      }
+                    },
+                    "partnerType": "null",
+                    "reimbursedFor": "array",
+                    "__typename": "string",
+                    "quoteTick": {
+                      "id": "string",
+                      "isin": "string",
+                      "midPrice": "number",
+                      "time": "string",
+                      "currency": "string",
+                      "bidPrice": "number",
+                      "askPrice": "number",
+                      "isOutdated": "boolean",
+                      "timestampUtc": {
+                        "time": "string",
+                        "epochMillisecond": "number",
+                        "__typename": "string"
+                      },
+                      "performanceDate": {
+                        "date": "string",
+                        "__typename": "string"
+                      },
+                      "performancesByTimeframe": {
+                        "[item]": {
+                          "timeframe": "string",
+                          "performance": "number",
+                          "simpleAbsoluteReturn": "number",
+                          "__typename": "string"
+                        }
+                      },
+                      "__typename": "string"
+                    }
+                  }
+                },
+                "numberOfPendingOrders": "number",
+                "savingsPlansAmount": "number",
+                "performance": {
+                  "id": "string",
+                  "valuation": "number",
+                  "performancesByTimeframe": {
+                    "[item]": {
+                      "performance": "number",
+                      "simpleAbsoluteReturn": "number",
+                      "timeframe": "string",
+                      "__typename": "string"
+                    }
+                  },
+                  "__typename": "string"
+                },
+                "__typename": "string"
+              }
+            },
+            "__typename": "string"
+          },
+          "ungroupedInventoryItems": {
+            "id": "string",
+            "items": "array",
+            "__typename": "string"
+          },
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getSuspenseWatchlist": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "watchlist": {
+          "id": "string",
+          "items": {
+            "[item]": {
+              "id": "string",
+              "isin": "string",
+              "wkn": "string",
+              "name": "string",
+              "type": "string",
+              "isSustainable": "boolean",
+              "isOnWatchlist": "boolean",
+              "numberOfPendingOrders": "number",
+              "inventory": "null",
+              "partnerType": "null",
+              "reimbursedFor": "array",
+              "__typename": "string",
+              "quoteTick": {
+                "id": "string",
+                "isin": "string",
+                "midPrice": "number",
+                "time": "string",
+                "currency": "string",
+                "bidPrice": "number",
+                "askPrice": "number",
+                "isOutdated": "boolean",
+                "timestampUtc": {
+                  "time": "string",
+                  "epochMillisecond": "number",
+                  "__typename": "string"
+                },
+                "performanceDate": {
+                  "date": "string",
+                  "__typename": "string"
+                },
+                "performancesByTimeframe": {
+                  "[item]": {
+                    "timeframe": "string",
+                    "performance": "number",
+                    "simpleAbsoluteReturn": "number",
+                    "__typename": "string"
+                  }
+                },
+                "__typename": "string"
+              }
+            }
+          },
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getCashBreakdown": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "payments": {
+          "id": "string",
+          "buyingPower": {
+            "id": "string",
+            "cashBalance": "number",
+            "liveLimit": "number",
+            "pendingBuyOrdersAmount": "number",
+            "pendingDividendsReinvestmentAmount": "number",
+            "pendingPocketMoneyAmount": "number",
+            "pendingSavingsPlanAmount": "number",
+            "pendingWithdrawalsAmount": "number",
+            "estimatedTaxes": "number",
+            "directDebit": "number",
+            "cashAvailableToInvest": "number",
+            "__typename": "string"
+          },
+          "derivativesBuyingPower": {
+            "id": "string",
+            "cashAvailableToInvest": "number",
+            "derivativesDirectDebit": "number",
+            "cashAvailableForDerivatives": "number",
+            "__typename": "string"
+          },
+          "withdrawalPower": {
+            "id": "string",
+            "cashAvailableToInvest": "number",
+            "sellTradesAmount": "number",
+            "withdrawalDirectDebit": "number",
+            "cashAvailableForWithdrawal": "number",
+            "__typename": "string"
+          },
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getInterests": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "interests": {
+          "depositInterestRate": "number",
+          "effectiveYearlyDepositInterestRate": "number",
+          "grantedOverdraftInterestRate": "number",
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "queryPendingOrders": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "numberOfPendingOrders": "number",
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getAppropriatenessResult": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "appropriatenessInfo": {
+          "id": "string",
+          "appropriatenessId": "string",
+          "result": "string",
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "getCryptoPerformance": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "valuation": {
+          "id": "string",
+          "cryptoValuation": "number",
+          "cryptoUnrealisedReturnSinceBuy": {
+            "absoluteUnrealisedReturn": "number",
+            "relativeUnrealisedReturn": "number",
+            "__typename": "string"
+          },
+          "__typename": "string"
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  },
+  "timeWeightedReturn": {
+    "account": {
+      "id": "string",
+      "brokerPortfolio": {
+        "id": "string",
+        "timeseries": {
+          "[item]": {
+            "id": "string",
+            "timeframe": "string",
+            "closingReferencePoint": {
+              "id": "string",
+              "absoluteReturn": "number",
+              "valuation": "number",
+              "timestampUtc": {
+                "time": "string",
+                "__typename": "string"
+              },
+              "__typename": "string"
+            },
+            "dataPoints": {
+              "[item]": {
+                "id": "string",
+                "absoluteReturn": "number",
+                "valuation": "number",
+                "timestampUtc": {
+                  "time": "string",
+                  "__typename": "string"
+                },
+                "__typename": "string"
+              }
+            },
+            "__typename": "string"
+          }
+        },
+        "__typename": "string"
+      },
+      "__typename": "string"
+    }
+  }
+}
