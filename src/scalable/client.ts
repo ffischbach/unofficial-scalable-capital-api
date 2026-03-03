@@ -1,6 +1,7 @@
 import { getSession } from '../auth/session.ts';
 import { runPuppeteerLogin } from '../auth/puppeteer-login.ts';
 import type { Cookie, GraphQLRequest, GraphQLResponse } from '../types.ts';
+import { checkResponseShape } from './apiMonitor.ts';
 
 const GRAPHQL_URL = 'https://de.scalable.capital/broker/api/data';
 const USER_AGENT = 'unofficial-sc-api/0.1.0 (https://github.com/ffischbach/unofficial-scalable-capital-api)';
@@ -59,7 +60,9 @@ export async function graphqlRequest<T>(
   const cookieHeader = buildCookieHeader(session.cookies);
 
   try {
-    return await executeRequest<T>(body, session.portfolioId, cookieHeader);
+    const result = await executeRequest<T>(body, session.portfolioId, cookieHeader);
+    void checkResponseShape(body.operationName, result.data);
+    return result;
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
     if ((status === 401 || status === 403) && !retried) {

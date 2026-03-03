@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
 import { getSession } from '../auth/session.ts';
 import { wsManager } from './wsManager.ts';
+import { checkResponseShape } from './apiMonitor.ts';
 
 const QUOTE_QUERY = /* GraphQL */ `
   subscription realTimeQuoteTicks($isins: [String!]!, $portfolioId: ID, $source: MarketDataSource, $includeYearToDate: Boolean) {
@@ -13,19 +15,23 @@ const QUOTE_QUERY = /* GraphQL */ `
   }
 `;
 
-export interface QuoteTick {
-  id: string;
-  isin: string;
-  midPrice: number;
-  time: string;
-  currency: string;
-  bidPrice: number;
-  askPrice: number;
-  isOutdated: boolean;
-  timestampUtc: { time: string; epochMillisecond: number };
-  performanceDate: { date: string } | null;
-  performancesByTimeframe: Array<{ timeframe: string; performance: number; simpleAbsoluteReturn: number }>;
-}
+const QuoteTickSchema = z.object({
+  id: z.string(),
+  isin: z.string(),
+  midPrice: z.number(),
+  time: z.string(),
+  currency: z.string(),
+  bidPrice: z.number(),
+  askPrice: z.number(),
+  isOutdated: z.boolean(),
+  timestampUtc: z.object({ time: z.string(), epochMillisecond: z.number() }),
+  performanceDate: z.object({ date: z.string() }).nullable(),
+  performancesByTimeframe: z.array(
+    z.object({ timeframe: z.string(), performance: z.number(), simpleAbsoluteReturn: z.number() }).passthrough(),
+  ),
+}).passthrough();
+
+export type QuoteTick = z.infer<typeof QuoteTickSchema>;
 
 type QuoteListener = (tick: QuoteTick) => void;
 
@@ -69,10 +75,17 @@ class QuoteManager {
       includeYearToDate: true,
     };
     const onData = (data: unknown) => {
-      const tick = (data as { realTimeQuoteTicks?: QuoteTick })?.realTimeQuoteTicks;
-      if (!tick?.isin) return;
+      const raw = (data as { realTimeQuoteTicks?: unknown })?.realTimeQuoteTicks;
+      if (!raw) return;
+      void checkResponseShape('realTimeQuoteTicks', raw);
+      const parsed = QuoteTickSchema.safeParse(raw);
+      if (!parsed.success) {
+        console.warn('[API MONITOR] realTimeQuoteTicks schema mismatch:', parsed.error.message);
+        return;
+      }
+      if (!parsed.data.isin) return;
       for (const [listener, listenerIsinList] of this.listenerIsins) {
-        if (listenerIsinList.includes(tick.isin)) listener(tick);
+        if (listenerIsinList.includes(parsed.data.isin)) listener(parsed.data);
       }
     };
 

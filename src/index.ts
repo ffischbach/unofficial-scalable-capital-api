@@ -1,17 +1,20 @@
 import { parseArgs } from 'node:util';
 import { loadSessionFromDisk } from './auth/session.ts';
 import { createApp } from './server/app.ts';
+import { setMonitorEnabled } from './scalable/apiMonitor.ts';
 import type { GatewayConfig } from './types.ts';
 
 const { values } = parseArgs({
   options: {
     port: { type: 'string', default: '3141' },
     token: { type: 'string' },
+    monitor: { type: 'boolean', default: false },
   },
 });
 
 const port = parseInt(values.port as string, 10);
 const token = values.token as string | undefined;
+const monitor = values.monitor as boolean;
 
 if (isNaN(port) || port < 1 || port > 65535) {
   console.error(`Invalid port: ${values.port}`);
@@ -19,6 +22,8 @@ if (isNaN(port) || port < 1 || port > 65535) {
 }
 
 const config: GatewayConfig = { port, token };
+
+setMonitorEnabled(monitor);
 
 // Load persisted session before starting server (valid in ESM + Node 22+)
 await loadSessionFromDisk();
@@ -37,6 +42,11 @@ const server = app.listen(port, '127.0.0.1', () => {
   console.log('');
   if (token) {
     console.log(`  Gateway token protection enabled (X-Gateway-Token header required)`);
+    console.log('');
+  }
+  if (monitor) {
+    console.log(`  API monitor enabled — changes written to api-changes.json`);
+    console.log(`  Run 'npm run report-changes' to file GitHub issues for detected changes`);
     console.log('');
   }
 });

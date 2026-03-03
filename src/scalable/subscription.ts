@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
 import { getSession } from '../auth/session.ts';
 import { wsManager } from './wsManager.ts';
+import { checkResponseShape } from './apiMonitor.ts';
 
 const SUBSCRIPTION_QUERY = /* GraphQL */ `
   subscription RealTimeValuation($portfolioId: ID!) {
@@ -17,20 +19,23 @@ const SUBSCRIPTION_QUERY = /* GraphQL */ `
   }
 `;
 
-export interface RealTimeValuation {
-  id: string;
-  timestampUtc: { time: string; epochMillisecond: number };
-  valuation: number;
-  securitiesValuation: number;
-  unrealisedReturn: { absoluteUnrealisedReturn: number; relativeUnrealisedReturn: number };
-  cryptoValuation: number;
-  lastInventoryUpdateTimestampUtc: { epochSecond: number };
-  timeWeightedReturnByTimeframe: Array<{
-    timeframe: string;
-    performance: number;
-    simpleAbsoluteReturn: number;
-  }>;
-}
+const RealTimeValuationSchema = z.object({
+  id: z.string(),
+  timestampUtc: z.object({ time: z.string(), epochMillisecond: z.number() }),
+  valuation: z.number(),
+  securitiesValuation: z.number(),
+  unrealisedReturn: z.object({
+    absoluteUnrealisedReturn: z.number(),
+    relativeUnrealisedReturn: z.number(),
+  }),
+  cryptoValuation: z.number(),
+  lastInventoryUpdateTimestampUtc: z.object({ epochSecond: z.number() }),
+  timeWeightedReturnByTimeframe: z.array(
+    z.object({ timeframe: z.string(), performance: z.number(), simpleAbsoluteReturn: z.number() }).passthrough(),
+  ),
+}).passthrough();
+
+export type RealTimeValuation = z.infer<typeof RealTimeValuationSchema>;
 
 type Listener = (data: RealTimeValuation) => void;
 
@@ -80,12 +85,17 @@ class SubscriptionManager {
         SUBSCRIPTION_QUERY,
         { portfolioId: session.portfolioId },
         (data) => {
-          const val = (data as { realTimeValuation?: RealTimeValuation })?.realTimeValuation;
-          if (val) {
-            this.lastValuation = val;
-            this.lastReceivedAt = Date.now();
-            for (const l of this.listeners) l(val);
+          const raw = (data as { realTimeValuation?: unknown })?.realTimeValuation;
+          if (!raw) return;
+          void checkResponseShape('RealTimeValuation', raw);
+          const parsed = RealTimeValuationSchema.safeParse(raw);
+          if (!parsed.success) {
+            console.warn('[API MONITOR] realTimeValuation schema mismatch:', parsed.error.message);
+            return;
           }
+          this.lastValuation = parsed.data;
+          this.lastReceivedAt = Date.now();
+          for (const l of this.listeners) l(parsed.data);
         },
       );
     }
