@@ -17,7 +17,6 @@ export interface Session {
   cookies: Cookie[];
   personId: string;
   portfolioId: string;
-  valuation: string; // stored as string, never float
   authenticatedAt: number;
   expiresAt: number;
 }

@@ -2,7 +2,6 @@ import puppeteer from 'puppeteer';
 import {
   extractPortfolioId,
   extractPersonId,
-  extractValuation,
   extractCookies,
 } from './identity.ts';
 import { createSession, persistSession, setSession } from './session.ts';
@@ -55,19 +54,10 @@ export async function runPuppeteerLogin(): Promise<Session> {
     const personId = await extractPersonId(page);
     console.log(`[login] Extracted personId: ${personId}`);
 
-    // Step 4: Navigate to broker home with portfolioId to get valuation
-    await page.goto(`https://de.scalable.capital/broker?portfolioId=${portfolioId}`, {
-      waitUntil: 'networkidle2',
-      timeout: 30_000,
-    });
-
-    const valuation = await extractValuation(page, portfolioId);
-    console.log(`[login] Extracted valuation: ${valuation}`);
-
     const cookies = await extractCookies(page);
     console.log(`[login] Extracted ${cookies.length} cookies.`);
 
-    const session = createSession(cookies, personId, portfolioId, valuation);
+    const session = createSession(cookies, personId, portfolioId);
     setSession(session);
     await persistSession(session);
 

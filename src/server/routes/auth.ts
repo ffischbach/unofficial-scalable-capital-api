@@ -38,7 +38,6 @@ router.get('/status', (_req, res) => {
     authenticated: true,
     personId: session.personId,
     portfolioId: session.portfolioId,
-    valuation: session.valuation,
     expiresAt: session.expiresAt,
   });
 });

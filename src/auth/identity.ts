@@ -92,48 +92,6 @@ export async function extractPortfolioId(page: Page): Promise<string> {
   );
 }
 
-export async function extractValuation(page: Page, portfolioId: string): Promise<string> {
-  // Wait for __NEXT_DATA__ to be populated
-  await page.waitForFunction(
-    () => {
-      const el = document.getElementById('__NEXT_DATA__');
-      if (!el || !el.textContent) return false;
-      try {
-        const data = JSON.parse(el.textContent);
-        return !!data?.props?.initialQueryResult;
-      } catch {
-        return false;
-      }
-    },
-    { timeout: 15_000 },
-  );
-
-  const valuation = await page.evaluate((pid: string) => {
-    const el = document.getElementById('__NEXT_DATA__');
-    if (!el || !el.textContent) return null;
-    try {
-      const data = JSON.parse(el.textContent);
-      const key = `BrokerValuation:${pid}`;
-      const result = data?.props?.initialQueryResult?.[key]?.valuation;
-      if (result != null) return String(result);
-
-      // Fallback: log available keys for debugging
-      const keys = Object.keys(data?.props?.initialQueryResult ?? {});
-      console.warn('[identity] __NEXT_DATA__ keys:', keys.join(', '));
-      return null;
-    } catch (e) {
-      console.warn('[identity] Failed to parse __NEXT_DATA__:', e);
-      return null;
-    }
-  }, portfolioId);
-
-  if (valuation == null) {
-    throw new Error(`Could not extract valuation for portfolioId ${portfolioId} from __NEXT_DATA__`);
-  }
-
-  return valuation;
-}
-
 export async function extractCookies(page: Page): Promise<Cookie[]> {
   const puppeteerCookies = await page.cookies();
   return puppeteerCookies.map((c) => ({

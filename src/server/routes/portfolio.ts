@@ -35,11 +35,7 @@ router.get('/', requireSession, async (_req, res) => {
     return;
   }
 
-  const session = getSession()!;
-  res.json({
-    source: 'session',
-    valuation: session.valuation,
-  });
+  res.json({ source: 'unavailable' });
 });
 
 // GET /portfolio/inventory
