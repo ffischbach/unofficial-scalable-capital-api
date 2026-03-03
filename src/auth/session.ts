@@ -33,6 +33,9 @@ export async function loadSessionFromDisk(): Promise<void> {
     currentSession = session;
     const expiresIn = Math.round((session.expiresAt - Date.now()) / 1000 / 60);
     console.log(`[session] Restored session from disk (expires in ~${expiresIn} minutes).`);
+    if (expiresIn < 30) {
+      console.warn(`[session] Warning: session expires in ~${expiresIn} minutes — re-login soon.`);
+    }
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
       console.log('[session] No session.json found — starting unauthenticated.');
@@ -60,16 +63,21 @@ export function createSession(
   cookies: Cookie[],
   personId: string,
   portfolioId: string,
-  valuation: string,
 ): Session {
   const now = Date.now();
+  const validCookieExpiries = cookies
+    .filter((c) => c.expires > 0)
+    .map((c) => c.expires * 1000); // Unix seconds → ms
+  const minCookieExpiry = validCookieExpiries.length > 0
+    ? Math.min(...validCookieExpiries)
+    : Infinity;
+  const expiresAt = Math.min(now + SESSION_TTL_MS, minCookieExpiry);
   return {
     cookies,
     personId,
     portfolioId,
-    valuation,
     authenticatedAt: now,
-    expiresAt: now + SESSION_TTL_MS,
+    expiresAt,
   };
 }
 

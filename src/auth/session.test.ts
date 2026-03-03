@@ -14,19 +14,19 @@ const mockCookies: Cookie[] = [{
 
 describe('isSessionValid', () => {
   it('returns true when expiresAt is in the future', () => {
-    const session = createSession(mockCookies, 'pid', 'portId', '1000');
+    const session = createSession(mockCookies, 'pid', 'portId');
     expect(isSessionValid(session)).toBe(true);
   });
 
   it('returns false when expiresAt is in the past', () => {
-    const session = createSession(mockCookies, 'pid', 'portId', '1000');
+    const session = createSession(mockCookies, 'pid', 'portId');
     const expired = { ...session, expiresAt: Date.now() - 1 };
     expect(isSessionValid(expired)).toBe(false);
   });
 
   it('returns false when expiresAt equals Date.now() (not strictly less-than)', () => {
     const now = Date.now();
-    const session = createSession(mockCookies, 'pid', 'portId', '1000');
+    const session = createSession(mockCookies, 'pid', 'portId');
     const atEdge = { ...session, expiresAt: now };
     // Date.now() will have advanced by tiny amount, so expiresAt <= Date.now()
     expect(isSessionValid(atEdge)).toBe(false);
@@ -35,20 +35,37 @@ describe('isSessionValid', () => {
 
 describe('createSession', () => {
   it('returns an object with all required fields', () => {
-    const session = createSession(mockCookies, 'person1', 'port1', '999.99');
+    const session = createSession(mockCookies, 'person1', 'port1');
     expect(session).toMatchObject({
       cookies: mockCookies,
       personId: 'person1',
       portfolioId: 'port1',
-      valuation: '999.99',
     });
     expect(typeof session.authenticatedAt).toBe('number');
     expect(typeof session.expiresAt).toBe('number');
   });
 
-  it('sets expiresAt approximately 8 hours in the future', () => {
+  it('sets expiresAt to 8 hours when all cookies are session cookies (expires: -1)', () => {
     const before = Date.now();
-    const session = createSession(mockCookies, 'p', 'q', '0');
+    const session = createSession(mockCookies, 'p', 'q');
+    const after = Date.now();
+    const eightHoursMs = 8 * 60 * 60 * 1000;
+    expect(session.expiresAt).toBeGreaterThanOrEqual(before + eightHoursMs - 100);
+    expect(session.expiresAt).toBeLessThanOrEqual(after + eightHoursMs + 100);
+  });
+
+  it('uses the earliest cookie expiry when it is sooner than 8 hours', () => {
+    const soon = Math.floor((Date.now() + 30 * 60 * 1000) / 1000); // 30 min from now in Unix s
+    const cookiesWithExpiry: Cookie[] = [{ ...mockCookies[0], expires: soon }];
+    const session = createSession(cookiesWithExpiry, 'p', 'q');
+    expect(session.expiresAt).toBe(soon * 1000);
+  });
+
+  it('caps at 8 hours even when cookie expiry is farther in the future', () => {
+    const far = Math.floor((Date.now() + 30 * 24 * 60 * 60 * 1000) / 1000); // 30 days
+    const cookiesWithExpiry: Cookie[] = [{ ...mockCookies[0], expires: far }];
+    const before = Date.now();
+    const session = createSession(cookiesWithExpiry, 'p', 'q');
     const after = Date.now();
     const eightHoursMs = 8 * 60 * 60 * 1000;
     expect(session.expiresAt).toBeGreaterThanOrEqual(before + eightHoursMs - 100);
