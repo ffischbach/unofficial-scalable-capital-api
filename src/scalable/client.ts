@@ -13,11 +13,11 @@ export class AuthenticationError extends Error {
   }
 }
 
-function buildCookieHeader(cookies: Cookie[]): string {
+export function buildCookieHeader(cookies: Cookie[]): string {
   return cookies.map((c) => `${c.name}=${c.value}`).join('; ');
 }
 
-function buildHeaders(portfolioId: string, cookieHeader: string): Record<string, string> {
+export function buildHeaders(portfolioId: string, cookieHeader: string): Record<string, string> {
   return {
     'Content-Type': 'application/json',
     'Cookie': cookieHeader,

@@ -19,8 +19,8 @@ export function setMonitorEnabled(enabled: boolean): void {
 
 // --- Shape types ---
 
-type PrimitiveType = 'string' | 'number' | 'boolean' | 'null' | 'array' | 'unknown';
-type ShapeNode = PrimitiveType | { [key: string]: ShapeNode };
+export type PrimitiveType = 'string' | 'number' | 'boolean' | 'null' | 'array' | 'unknown';
+export type ShapeNode = PrimitiveType | { [key: string]: ShapeNode };
 type SnapshotMap = Record<string, ShapeNode>;
 
 // --- Change log ---
@@ -78,7 +78,7 @@ function recordChange(entry: ChangeEntry): void {
 
 // --- Shape extraction ---
 
-function extractShape(value: unknown): ShapeNode {
+export function extractShape(value: unknown): ShapeNode {
   if (value === null) return 'null';
   if (typeof value === 'boolean') return 'boolean';
   if (typeof value === 'number') return 'number';
