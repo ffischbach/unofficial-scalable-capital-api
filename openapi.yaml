@@ -28,12 +28,9 @@ components:
           type: string
         portfolioId:
           type: string
-        valuation:
-          type: string
-          description: Portfolio valuation captured at login time (stored as string to avoid float precision issues).
         expiresAt:
           type: number
-          description: Unix timestamp (ms) when the session expires.
+          description: Unix timestamp (ms) when the session expires. Derived as the minimum of 8 hours from login and the earliest Scalable Capital cookie expiry.
 
     LoginResponse:
       type: object
@@ -136,16 +133,16 @@ components:
     PortfolioValuation:
       type: object
       description: |
-        Valuation snapshot returned by `GET /portfolio`. Wraps a `RealTimeValuation` tick with a
-        `source` field indicating whether the data is live (WebSocket) or stale (login snapshot).
-        The realtime value is cached for up to 30 seconds (`source: "realtime"`); stale responses
-        fall back to the valuation captured at login time (`source: "session"`).
-      required: [source, valuation]
+        Valuation snapshot returned by `GET /portfolio`. When a realtime WebSocket subscription tick
+        is available (cached for up to 30 seconds, or fetched on-demand), `source` is `"realtime"`
+        and the full valuation payload is included. If no tick has been received yet, returns
+        `{ "source": "unavailable" }` with no additional fields.
+      required: [source]
       properties:
         source:
           type: string
-          enum: [realtime, session]
-          description: '"realtime" if data came from the WebSocket subscription tick, "session" if from the login snapshot (no tick received yet).'
+          enum: [realtime, unavailable]
+          description: '"realtime" if data came from the WebSocket subscription tick; "unavailable" if no tick has been received yet.'
         valuation:
           type: number
           description: Total portfolio value in account currency.
@@ -797,7 +794,7 @@ paths:
         Returns the most recent valuation data. The last WebSocket subscription tick is served from
         an in-memory cache for up to 30 seconds. If the cached value is older than 30 seconds (or not
         yet available), the endpoint opens a temporary subscription and waits up to 10 seconds for a
-        fresh tick. Falls back to the valuation captured at login time if no realtime data arrives.
+        fresh tick. Returns `{ source: "unavailable" }` if no realtime data arrives.
       security:
         - GatewayToken: []
       responses:
