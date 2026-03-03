@@ -1,4 +1,4 @@
-import { getSession } from '../auth/session.ts';
+import { getSession, isSessionValid } from '../auth/session.ts';
 import { runPuppeteerLogin } from '../auth/puppeteer-login.ts';
 import type { Cookie, GraphQLRequest, GraphQLResponse } from '../types.ts';
 import { checkResponseShape } from './apiMonitor.ts';
@@ -57,6 +57,13 @@ export async function graphqlRequest<T>(
     throw new AuthenticationError();
   }
 
+  if (!isSessionValid(session)) {
+    if (retried) throw new AuthenticationError('Session expired and re-login failed.');
+    console.log('[client] Session expired — triggering re-login...');
+    await runPuppeteerLogin();
+    return graphqlRequest<T>(body, true);
+  }
+
   const cookieHeader = buildCookieHeader(session.cookies);
 
   try {
@@ -68,7 +75,6 @@ export async function graphqlRequest<T>(
     if ((status === 401 || status === 403) && !retried) {
       console.log(`[client] Got ${status} — triggering re-login...`);
       await runPuppeteerLogin();
-      // Recurse with retried=true to prevent infinite loops
       return graphqlRequest<T>(body, true);
     }
     throw err;
