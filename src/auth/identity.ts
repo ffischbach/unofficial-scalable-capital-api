@@ -12,7 +12,9 @@ export async function extractPersonIdFromCookies(page: Page): Promise<string> {
   return userId;
 }
 
-export async function extractAccountIds(page: Page): Promise<{ portfolioId: string; savingsId: string | null }> {
+export async function extractAccountIds(
+  page: Page,
+): Promise<{ portfolioId: string; savingsId: string | null }> {
   let portfolioId: string | null = null;
   let savingsId: string | null = null;
 

@@ -54,7 +54,11 @@ export async function persistSession(session: Session): Promise<void> {
   } catch (err) {
     console.error('[session] Failed to persist session:', err);
     // Attempt to clean up tmp file
-    try { await fs.unlink(tmpFile); } catch { /* ignore */ }
+    try {
+      await fs.unlink(tmpFile);
+    } catch {
+      /* ignore */
+    }
     throw err;
   }
 }
@@ -66,12 +70,9 @@ export function createSession(
   savingsId: string | null,
 ): Session {
   const now = Date.now();
-  const validCookieExpiries = cookies
-    .filter((c) => c.expires > 0)
-    .map((c) => c.expires * 1000); // Unix seconds → ms
-  const minCookieExpiry = validCookieExpiries.length > 0
-    ? Math.min(...validCookieExpiries)
-    : Infinity;
+  const validCookieExpiries = cookies.filter((c) => c.expires > 0).map((c) => c.expires * 1000); // Unix seconds → ms
+  const minCookieExpiry =
+    validCookieExpiries.length > 0 ? Math.min(...validCookieExpiries) : Infinity;
   const expiresAt = Math.min(now + SESSION_TTL_MS, minCookieExpiry);
   return {
     cookies,

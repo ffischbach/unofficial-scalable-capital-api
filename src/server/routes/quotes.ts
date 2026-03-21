@@ -20,10 +20,18 @@ const router = Router();
  */
 router.get('/stream', requireSession, (req: Request, res: Response) => {
   const raw = req.query['isins'];
-  const isins = typeof raw === 'string' ? raw.split(',').map((s) => s.trim()).filter(Boolean) : [];
+  const isins =
+    typeof raw === 'string'
+      ? raw
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
 
   if (isins.length === 0) {
-    res.status(400).json({ error: 'Query parameter "isins" is required (comma-separated list of ISINs).' });
+    res
+      .status(400)
+      .json({ error: 'Query parameter "isins" is required (comma-separated list of ISINs).' });
     return;
   }
 
