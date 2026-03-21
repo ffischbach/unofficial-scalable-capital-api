@@ -27,6 +27,7 @@ Scalable Capital doesn't offer a public API. This project fills that gap: it's a
 | **Live quotes** | Bid, ask, and mid price per ISIN with per-timeframe performance, streamed via SSE |
 | **Transactions** | Full history with type, status, date, description, amount, ISIN, and buy/sell side; cursor-paginated |
 | **Transaction details** | Individual transaction breakdown by ID |
+| **Tagesgeld savings** | Balance, interest rate, next payout date; paginated savings transaction history |
 
 ## Examples
 
@@ -82,6 +83,8 @@ Once the server is running, interactive docs are also available at **http://127.
 | `GET`      | `/quotes/stream?isins=IE00B4L5Y983,…` | Real-time quote ticks per ISIN (SSE)  |
 | `GET`      | `/transactions`                        | Transaction history                   |
 | `GET`      | `/transactions/:id`                    | Single transaction details            |
+| `GET`      | `/savings`                             | Tagesgeld balance, interest rate, next payout date |
+| `GET`      | `/savings/transactions`                | Savings transaction history (`?limit=50`) |
 | `POST`     | `/proxy`                               | Pass-through for raw GraphQL queries  |
 
 ### Quick example
