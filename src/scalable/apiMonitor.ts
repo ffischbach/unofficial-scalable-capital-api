@@ -64,7 +64,11 @@ async function persistChangeLog(): Promise<void> {
     await fs.rename(tmpFile, CHANGES_FILE);
   } catch (err) {
     console.warn('[API MONITOR] Failed to persist api-changes.json:', err);
-    try { await fs.unlink(tmpFile); } catch { /* ignore */ }
+    try {
+      await fs.unlink(tmpFile);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -107,7 +111,12 @@ function shapeLabel(s: ShapeNode): string {
   return typeof s === 'string' ? s : 'object';
 }
 
-function diffShapes(opName: string, oldShape: ShapeNode, newShape: ShapeNode, pathStr: string): void {
+function diffShapes(
+  opName: string,
+  oldShape: ShapeNode,
+  newShape: ShapeNode,
+  pathStr: string,
+): void {
   if (typeof oldShape === 'string' && typeof newShape === 'string' && oldShape === newShape) return;
 
   if (oldShape === 'array' && typeof newShape === 'object' && '[item]' in newShape) return;
@@ -115,7 +124,14 @@ function diffShapes(opName: string, oldShape: ShapeNode, newShape: ShapeNode, pa
   if (typeof oldShape === 'string' && typeof newShape === 'string' && oldShape !== newShape) {
     const msg = `[API MONITOR] '${opName}': type changed at '${pathStr}' (${oldShape} → ${newShape})`;
     console.warn(msg);
-    recordChange({ timestamp: new Date().toISOString(), operation: opName, path: pathStr, kind: 'type-changed', from: oldShape, to: newShape });
+    recordChange({
+      timestamp: new Date().toISOString(),
+      operation: opName,
+      path: pathStr,
+      kind: 'type-changed',
+      from: oldShape,
+      to: newShape,
+    });
     return;
   }
   if (typeof oldShape !== typeof newShape) {
@@ -123,7 +139,14 @@ function diffShapes(opName: string, oldShape: ShapeNode, newShape: ShapeNode, pa
     const to = shapeLabel(newShape);
     const msg = `[API MONITOR] '${opName}': type changed at '${pathStr}' (${from} → ${to})`;
     console.warn(msg);
-    recordChange({ timestamp: new Date().toISOString(), operation: opName, path: pathStr, kind: 'type-changed', from, to });
+    recordChange({
+      timestamp: new Date().toISOString(),
+      operation: opName,
+      path: pathStr,
+      kind: 'type-changed',
+      from,
+      to,
+    });
     return;
   }
 
@@ -134,13 +157,23 @@ function diffShapes(opName: string, oldShape: ShapeNode, newShape: ShapeNode, pa
     for (const key of oldKeys) {
       if (!newKeys.has(key)) {
         console.warn(`[API MONITOR] '${opName}': field removed at '${prefix}${key}'`);
-        recordChange({ timestamp: new Date().toISOString(), operation: opName, path: `${prefix}${key}`, kind: 'removed' });
+        recordChange({
+          timestamp: new Date().toISOString(),
+          operation: opName,
+          path: `${prefix}${key}`,
+          kind: 'removed',
+        });
       }
     }
     for (const key of newKeys) {
       if (!oldKeys.has(key)) {
         console.log(`[API MONITOR] '${opName}': field added at '${prefix}${key}'`);
-        recordChange({ timestamp: new Date().toISOString(), operation: opName, path: `${prefix}${key}`, kind: 'added' });
+        recordChange({
+          timestamp: new Date().toISOString(),
+          operation: opName,
+          path: `${prefix}${key}`,
+          kind: 'added',
+        });
       }
     }
     for (const key of oldKeys) {

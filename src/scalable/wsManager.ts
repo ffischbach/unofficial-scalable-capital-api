@@ -2,7 +2,8 @@ import WebSocket from 'ws';
 import { getSession } from '../auth/session.ts';
 
 const WS_URL = 'wss://de.scalable.capital/broker/subscriptions';
-const USER_AGENT = 'unofficial-sc-api/0.1.0 (https://github.com/ffischbach/unofficial-scalable-capital-api)';
+const USER_AGENT =
+  'unofficial-sc-api/0.1.0 (https://github.com/ffischbach/unofficial-scalable-capital-api)';
 const RECONNECT_DELAY_MS = 5_000;
 
 interface RegisteredSub {
@@ -124,7 +125,9 @@ class WebSocketManager {
           if (sub) {
             sub.onData((msg.payload as { data?: unknown })?.data);
           } else {
-            console.warn(`[wsManager] ← next for unknown id ${msg.id.slice(0, 8)} — sub may have been removed`);
+            console.warn(
+              `[wsManager] ← next for unknown id ${msg.id.slice(0, 8)} — sub may have been removed`,
+            );
           }
         }
         break;
@@ -134,10 +137,17 @@ class WebSocketManager {
         break;
 
       case 'error': {
-        console.error('[wsManager] Subscription error for', msg.id, ':', JSON.stringify(msg.payload));
+        console.error(
+          '[wsManager] Subscription error for',
+          msg.id,
+          ':',
+          JSON.stringify(msg.payload),
+        );
         const errors = msg.payload as Array<{ extensions?: { code?: string } }> | undefined;
         if (errors?.some((e) => e.extensions?.code === 'UNAUTHENTICATED')) {
-          console.warn('[wsManager] Session invalid — dropping all subscriptions. Run POST /auth/login to re-authenticate.');
+          console.warn(
+            '[wsManager] Session invalid — dropping all subscriptions. Run POST /auth/login to re-authenticate.',
+          );
           this.subs.clear();
           this.disconnect();
         }
@@ -156,7 +166,9 @@ class WebSocketManager {
   private sendSubscribe(id: string): void {
     const sub = this.subs.get(id);
     if (!sub || this.ws?.readyState !== WebSocket.OPEN) return;
-    console.log(`[wsManager] → subscribe ${sub.operationName} (id=${id.slice(0, 8)}, vars=${JSON.stringify(sub.variables)})`);
+    console.log(
+      `[wsManager] → subscribe ${sub.operationName} (id=${id.slice(0, 8)}, vars=${JSON.stringify(sub.variables)})`,
+    );
     this.send({
       id,
       type: 'subscribe',

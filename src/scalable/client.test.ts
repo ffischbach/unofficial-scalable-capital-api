@@ -3,7 +3,15 @@ import { buildCookieHeader, buildHeaders, AuthenticationError } from './client.t
 import type { Cookie } from '../types.ts';
 
 function makeCookie(name: string, value: string): Cookie {
-  return { name, value, domain: 'de.scalable.capital', path: '/', expires: -1, httpOnly: true, secure: true };
+  return {
+    name,
+    value,
+    domain: 'de.scalable.capital',
+    path: '/',
+    expires: -1,
+    httpOnly: true,
+    secure: true,
+  };
 }
 
 describe('buildCookieHeader', () => {

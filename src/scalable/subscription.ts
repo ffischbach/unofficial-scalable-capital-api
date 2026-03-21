@@ -8,32 +8,52 @@ const SUBSCRIPTION_QUERY = /* GraphQL */ `
   subscription RealTimeValuation($portfolioId: ID!) {
     realTimeValuation(portfolioId: $portfolioId) {
       id
-      timestampUtc { time epochMillisecond }
+      timestampUtc {
+        time
+        epochMillisecond
+      }
       valuation
       securitiesValuation
-      unrealisedReturn { absoluteUnrealisedReturn relativeUnrealisedReturn }
+      unrealisedReturn {
+        absoluteUnrealisedReturn
+        relativeUnrealisedReturn
+      }
       cryptoValuation
-      lastInventoryUpdateTimestampUtc { epochSecond }
-      timeWeightedReturnByTimeframe { timeframe performance simpleAbsoluteReturn }
+      lastInventoryUpdateTimestampUtc {
+        epochSecond
+      }
+      timeWeightedReturnByTimeframe {
+        timeframe
+        performance
+        simpleAbsoluteReturn
+      }
     }
   }
 `;
 
-const RealTimeValuationSchema = z.object({
-  id: z.string(),
-  timestampUtc: z.object({ time: z.string(), epochMillisecond: z.number() }),
-  valuation: z.number(),
-  securitiesValuation: z.number(),
-  unrealisedReturn: z.object({
-    absoluteUnrealisedReturn: z.number(),
-    relativeUnrealisedReturn: z.number(),
-  }),
-  cryptoValuation: z.number(),
-  lastInventoryUpdateTimestampUtc: z.object({ epochSecond: z.number() }),
-  timeWeightedReturnByTimeframe: z.array(
-    z.object({ timeframe: z.string(), performance: z.number(), simpleAbsoluteReturn: z.number() }).passthrough(),
-  ),
-}).passthrough();
+const RealTimeValuationSchema = z
+  .object({
+    id: z.string(),
+    timestampUtc: z.object({ time: z.string(), epochMillisecond: z.number() }),
+    valuation: z.number(),
+    securitiesValuation: z.number(),
+    unrealisedReturn: z.object({
+      absoluteUnrealisedReturn: z.number(),
+      relativeUnrealisedReturn: z.number(),
+    }),
+    cryptoValuation: z.number(),
+    lastInventoryUpdateTimestampUtc: z.object({ epochSecond: z.number() }),
+    timeWeightedReturnByTimeframe: z.array(
+      z
+        .object({
+          timeframe: z.string(),
+          performance: z.number(),
+          simpleAbsoluteReturn: z.number(),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
 
 export type RealTimeValuation = z.infer<typeof RealTimeValuationSchema>;
 
@@ -52,7 +72,10 @@ class SubscriptionManager {
     return this.lastValuation;
   }
 
-  fetchLatest(timeoutMs = 10_000, maxAgeMs = VALUATION_CACHE_TTL_MS): Promise<RealTimeValuation | null> {
+  fetchLatest(
+    timeoutMs = 10_000,
+    maxAgeMs = VALUATION_CACHE_TTL_MS,
+  ): Promise<RealTimeValuation | null> {
     if (this.lastValuation && this.lastReceivedAt && Date.now() - this.lastReceivedAt < maxAgeMs) {
       return Promise.resolve(this.lastValuation);
     }

@@ -4,7 +4,8 @@ import type { Cookie, GraphQLRequest, GraphQLResponse } from '../types.ts';
 import { checkResponseShape } from './apiMonitor.ts';
 
 const GRAPHQL_URL = 'https://de.scalable.capital/broker/api/data';
-const USER_AGENT = 'unofficial-sc-api/0.1.0 (https://github.com/ffischbach/unofficial-scalable-capital-api)';
+const USER_AGENT =
+  'unofficial-sc-api/0.1.0 (https://github.com/ffischbach/unofficial-scalable-capital-api)';
 
 export class AuthenticationError extends Error {
   constructor(message = 'Not authenticated. POST /auth/login first.') {
@@ -20,10 +21,10 @@ export function buildCookieHeader(cookies: Cookie[]): string {
 export function buildHeaders(portfolioId: string, cookieHeader: string): Record<string, string> {
   return {
     'Content-Type': 'application/json',
-    'Cookie': cookieHeader,
-    'Referer': `https://de.scalable.capital/broker/transactions?portfolioId=${portfolioId}`,
+    Cookie: cookieHeader,
+    Referer: `https://de.scalable.capital/broker/transactions?portfolioId=${portfolioId}`,
     'x-scacap-features-enabled': 'CRYPTO_MULTI_ETP,UNIQUE_SECURITY_ID',
-    'Origin': 'https://de.scalable.capital',
+    Origin: 'https://de.scalable.capital',
     'User-Agent': USER_AGENT,
   };
 }

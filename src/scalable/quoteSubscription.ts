@@ -5,31 +5,65 @@ import { wsManager } from './wsManager.ts';
 import { checkResponseShape } from './apiMonitor.ts';
 
 const QUOTE_QUERY = /* GraphQL */ `
-  subscription realTimeQuoteTicks($isins: [String!]!, $portfolioId: ID, $source: MarketDataSource, $includeYearToDate: Boolean) {
-    realTimeQuoteTicks(isins: $isins portfolioId: $portfolioId source: $source includeYearToDate: $includeYearToDate) {
-      id isin midPrice time currency bidPrice askPrice isOutdated
-      timestampUtc { time epochMillisecond }
-      performanceDate { date }
-      performancesByTimeframe { timeframe performance simpleAbsoluteReturn }
+  subscription realTimeQuoteTicks(
+    $isins: [String!]!
+    $portfolioId: ID
+    $source: MarketDataSource
+    $includeYearToDate: Boolean
+  ) {
+    realTimeQuoteTicks(
+      isins: $isins
+      portfolioId: $portfolioId
+      source: $source
+      includeYearToDate: $includeYearToDate
+    ) {
+      id
+      isin
+      midPrice
+      time
+      currency
+      bidPrice
+      askPrice
+      isOutdated
+      timestampUtc {
+        time
+        epochMillisecond
+      }
+      performanceDate {
+        date
+      }
+      performancesByTimeframe {
+        timeframe
+        performance
+        simpleAbsoluteReturn
+      }
     }
   }
 `;
 
-const QuoteTickSchema = z.object({
-  id: z.string(),
-  isin: z.string(),
-  midPrice: z.number(),
-  time: z.string(),
-  currency: z.string(),
-  bidPrice: z.number(),
-  askPrice: z.number(),
-  isOutdated: z.boolean(),
-  timestampUtc: z.object({ time: z.string(), epochMillisecond: z.number() }),
-  performanceDate: z.object({ date: z.string() }).nullable(),
-  performancesByTimeframe: z.array(
-    z.object({ timeframe: z.string(), performance: z.number(), simpleAbsoluteReturn: z.number() }).passthrough(),
-  ),
-}).passthrough();
+const QuoteTickSchema = z
+  .object({
+    id: z.string(),
+    isin: z.string(),
+    midPrice: z.number(),
+    time: z.string(),
+    currency: z.string(),
+    bidPrice: z.number(),
+    askPrice: z.number(),
+    isOutdated: z.boolean(),
+    timestampUtc: z.object({ time: z.string(), epochMillisecond: z.number() }),
+    performanceDate: z.object({ date: z.string() }).nullable(),
+    performancesByTimeframe: z.array(
+      z
+        .object({
+          timeframe: z.string(),
+          performance: z.number(),
+          simpleAbsoluteReturn: z.number(),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
 
 export type QuoteTick = z.infer<typeof QuoteTickSchema>;
 
@@ -90,7 +124,14 @@ class QuoteManager {
     };
 
     if (this.currentSubId) {
-      wsManager.updateSub(this.currentSubId, newId, 'realTimeQuoteTicks', QUOTE_QUERY, vars, onData);
+      wsManager.updateSub(
+        this.currentSubId,
+        newId,
+        'realTimeQuoteTicks',
+        QUOTE_QUERY,
+        vars,
+        onData,
+      );
     } else {
       wsManager.addSub(newId, 'realTimeQuoteTicks', QUOTE_QUERY, vars, onData);
     }
