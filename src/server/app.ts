@@ -8,6 +8,7 @@ import portfolioRouter from './routes/portfolio.ts';
 import quotesRouter from './routes/quotes.ts';
 import securitiesRouter from './routes/securities.ts';
 import transactionsRouter from './routes/transactions.ts';
+import savingsRouter from './routes/savings.ts';
 import { spec, scalarMiddleware } from './openapi.ts';
 import type { GatewayConfig } from '../types.ts';
 
@@ -51,6 +52,7 @@ export function createApp(config: GatewayConfig): express.Application {
   app.use('/quotes', quotesRouter);
   app.use('/securities', securitiesRouter);
   app.use('/transactions', transactionsRouter);
+  app.use('/savings', savingsRouter);
 
   // Error handler — must be last
   app.use(errorHandler);

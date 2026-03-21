@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 import {
-  extractPortfolioId,
-  extractPersonId,
+  extractPersonIdFromCookies,
+  extractAccountIds,
   extractCookies,
 } from './identity.ts';
 import { createSession, persistSession, setSession } from './session.ts';
@@ -30,34 +30,40 @@ export async function runPuppeteerLogin(): Promise<Session> {
       { timeout: 120_000, polling: 500 },
     );
 
-    console.log('[login] Login detected. Navigating to transactions page...');
+    console.log(`[login] Login detected. Current URL: ${page.url()}`);
 
-    // Step 3: Navigate to transactions to get portfolioId from URL
-    await page.goto('https://de.scalable.capital/broker/transactions', {
-      waitUntil: 'networkidle2',
-      timeout: 30_000,
+    // Step 3: Navigate to cockpit if not already there, then wait for account cards to render.
+    if (!page.url().includes('/cockpit')) {
+      await page.goto('https://de.scalable.capital/cockpit/', {
+        waitUntil: 'networkidle2',
+        timeout: 30_000,
+      });
+      console.log(`[login] Navigated to cockpit. URL: ${page.url()}`);
+    }
+
+    await page.waitForFunction(
+      () => document.querySelector('a[href*="portfolioId="]') !== null,
+      { timeout: 30_000, polling: 500 },
+    ).catch(async () => {
+      const url = await page.evaluate(() => window.location.href);
+      const links = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('a[href]')).map((a) => a.getAttribute('href')).join('\n'),
+      );
+      throw new Error(`[login] Account cards not found after 30s.\nURL: ${url}\nLinks on page:\n${links}`);
     });
 
-    // The Next.js client router adds portfolioId to the URL asynchronously — wait for it
-    await page
-      .waitForFunction(() => window.location.href.includes('portfolioId='), {
-        timeout: 120_000,
-        polling: 500,
-      })
-      .catch(() => {
-        console.log('[login] portfolioId not in URL after 10s — will try alternative extraction...');
-      });
-
-    const portfolioId = await extractPortfolioId(page);
+    // Step 4: Extract all identifiers
+    const { portfolioId, savingsId } = await extractAccountIds(page);
     console.log(`[login] Extracted portfolioId: ${portfolioId}`);
+    if (savingsId) console.log(`[login] Extracted savingsId: ${savingsId}`);
 
-    const personId = await extractPersonId(page);
+    const personId = await extractPersonIdFromCookies(page);
     console.log(`[login] Extracted personId: ${personId}`);
 
     const cookies = await extractCookies(page);
     console.log(`[login] Extracted ${cookies.length} cookies.`);
 
-    const session = createSession(cookies, personId, portfolioId);
+    const session = createSession(cookies, personId, portfolioId, savingsId);
     setSession(session);
     await persistSession(session);
 

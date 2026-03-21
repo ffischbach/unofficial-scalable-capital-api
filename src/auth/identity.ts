@@ -1,95 +1,39 @@
 import type { Page } from 'puppeteer';
 import type { Cookie } from '../types.ts';
 
-const FIBER_WALK_SCRIPT = `(function () {
-  function visit(node) {
-    if (!node) return null;
-    if (Array.isArray(node)) {
-      for (const sub of node) { const r = visit(sub); if (r) return r; }
-      return null;
-    }
-    if (typeof node === 'object') {
-      if (node.personId) return node.personId;
-      for (const key in node) {
-        if (['children','props','security','items'].includes(key) ||
-            key.startsWith('__reactProps')) {
-          const r = visit(node[key]); if (r) return r;
-        }
-      }
-    }
-    if (node.childNodes?.forEach) {
-      for (const child of node.childNodes) { const r = visit(child); if (r) return r; }
-    }
-    return null;
-  }
-  return visit(document.body);
-})()`;
+export async function extractPersonIdFromCookies(page: Page): Promise<string> {
+  const cookies = await page.cookies();
+  const sessionCookie = cookies.find((c) => c.name === 'session');
+  if (!sessionCookie) throw new Error('[identity] No "session" cookie found.');
 
-export async function extractPersonId(page: Page): Promise<string> {
-  const result = await page.evaluate(FIBER_WALK_SCRIPT);
-  if (typeof result !== 'string' || !result) {
-    throw new Error('Could not extract personId via React fiber walk.');
-  }
-  return result;
+  const parsed = JSON.parse(decodeURIComponent(sessionCookie.value)) as unknown;
+  const userId = (parsed as { user?: { userId?: string } })?.user?.userId;
+  if (!userId) throw new Error('[identity] Could not extract userId from session cookie.');
+  return userId;
 }
 
-export async function extractPortfolioId(page: Page): Promise<string> {
-  // 1. Try URL query param (most reliable when client router has run)
-  const url = page.url();
-  const urlMatch = url.match(/portfolioId=([^&]+)/);
-  if (urlMatch?.[1]) return urlMatch[1];
+export async function extractAccountIds(page: Page): Promise<{ portfolioId: string; savingsId: string | null }> {
+  let portfolioId: string | null = null;
+  let savingsId: string | null = null;
 
-  // 2. Fallback: scan __NEXT_DATA__ for a BrokerValuation:xxx key — xxx is the portfolioId
-  const fromNextData = await page.evaluate((): string | null => {
-    try {
-      const el = document.getElementById('__NEXT_DATA__');
-      if (!el?.textContent) return null;
-      const data = JSON.parse(el.textContent) as Record<string, unknown>;
-      const result = (data?.props as Record<string, unknown>)?.initialQueryResult as Record<string, unknown> | undefined;
-      if (!result) return null;
-      for (const key of Object.keys(result)) {
-        const m = key.match(/^BrokerValuation:(.+)$/);
-        if (m?.[1]) return m[1];
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  });
-  if (fromNextData) {
-    console.log('[identity] portfolioId extracted from __NEXT_DATA__:', fromNextData);
-    return fromNextData;
-  }
-
-  // 3. Fallback: React fiber walk looking for portfolioId property
-  const fromFiber = await page.evaluate(`(function () {
-    function visit(node) {
-      if (!node) return null;
-      if (Array.isArray(node)) {
-        for (const sub of node) { const r = visit(sub); if (r) return r; }
-        return null;
-      }
-      if (typeof node === 'object') {
-        if (node.portfolioId && typeof node.portfolioId === 'string') return node.portfolioId;
-        for (const key in node) {
-          if (['children','props','security','items','portfolio','broker'].includes(key) ||
-              key.startsWith('__reactProps')) {
-            const r = visit(node[key]); if (r) return r;
-          }
-        }
-      }
-      return null;
-    }
-    return visit(document.body);
-  })()`);
-  if (typeof fromFiber === 'string' && fromFiber) {
-    console.log('[identity] portfolioId extracted via fiber walk:', fromFiber);
-    return fromFiber;
-  }
-
-  throw new Error(
-    `Could not extract portfolioId from URL (${url}), __NEXT_DATA__, or fiber walk.`,
+  const hrefs = await page.evaluate((): string[] =>
+    Array.from(document.querySelectorAll('a[href]')).map((a) => a.getAttribute('href') ?? ''),
   );
+
+  for (const href of hrefs) {
+    if (!portfolioId) {
+      const m = href.match(/portfolioId=([^&]+)/);
+      if (m?.[1]) portfolioId = m[1];
+    }
+    if (!savingsId) {
+      const m = href.match(/\/interest\/([^/?]+)/);
+      if (m?.[1]) savingsId = m[1];
+    }
+    if (portfolioId && savingsId) break;
+  }
+
+  if (!portfolioId) throw new Error('[identity] Could not extract portfolioId from cockpit page.');
+  return { portfolioId, savingsId };
 }
 
 export async function extractCookies(page: Page): Promise<Cookie[]> {

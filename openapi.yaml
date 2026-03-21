@@ -28,6 +28,10 @@ components:
           type: string
         portfolioId:
           type: string
+        savingsId:
+          type: string
+          nullable: true
+          description: Savings account ID (Tagesgeld). Null if the user has no savings account.
         expiresAt:
           type: number
           description: Unix timestamp (ms) when the session expires. Derived as the minimum of 8 hours from login and the earliest Scalable Capital cookie expiry.
@@ -42,6 +46,10 @@ components:
           type: string
         portfolioId:
           type: string
+        savingsId:
+          type: string
+          nullable: true
+          description: Savings account ID (Tagesgeld). Null if the user has no savings account.
         expiresAt:
           type: number
 
@@ -275,6 +283,75 @@ components:
                 type: number
                 description: Absolute return in account currency.
                 example: 0.61
+
+    SavingsTransaction:
+      type: object
+      required: [id, type, status, description, amount, currency, lastEventDateTime, cashTransactionType]
+      properties:
+        id:
+          type: string
+          example: "THEQVT1GGEOZJVNRTSMUII"
+        type:
+          type: string
+          example: "CASH_TRANSACTION"
+        status:
+          type: string
+          example: "SETTLED"
+        description:
+          type: string
+          example: "Scalable Capital Tagesgeld Auszahlung"
+        amount:
+          type: number
+          example: 2500
+        currency:
+          type: string
+          example: "EUR"
+        lastEventDateTime:
+          type: string
+          description: ISO-8601 datetime string.
+          example: "2026-03-16T00:00:00.000Z"
+        cashTransactionType:
+          type: string
+          enum: [WITHDRAWAL, CASH_TRANSFER_IN, CASH_TRANSFER_OUT, INTEREST_PAYOUT]
+          example: "WITHDRAWAL"
+
+    SavingsOverview:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The savings account ID.
+          example: "2Yz9B847EvYmMdmJN68ywR"
+        totalAmount:
+          type: number
+          description: Current account balance in EUR.
+          example: 3400
+        depositInterestRate:
+          type: number
+          description: Nominal annual interest rate as a decimal (e.g. 0.025 = 2.5%).
+          example: 0.025
+        nextPayoutDate:
+          type: object
+          properties:
+            time:
+              type: string
+              description: ISO-8601 datetime of the next interest payout.
+              example: "2026-04-01T00:00:00.000Z"
+        interests:
+          type: object
+          properties:
+            effectiveYearlyDepositInterestRate:
+              type: number
+              description: Effective annual yield as a decimal.
+              example: 0.0252
+            estimatedNextPayoutAmount:
+              type: number
+              description: Estimated interest amount to be paid out next.
+              example: 3.9
+            currentAccruedAmount:
+              type: number
+              description: Interest accrued so far in the current period.
+              example: 1.34
 
     GraphQLRequest:
       type: object
@@ -1801,6 +1878,91 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GraphQLErrors'
+
+  /savings:
+    get:
+      summary: Savings account overview
+      operationId: getSavings
+      description: |
+        Returns the current balance, nominal and effective interest rates, next payout date,
+        and accrued interest for the Tagesgeld (overnight savings) account.
+        Returns 503 if the session has no savings account.
+      security:
+        - GatewayToken: []
+      responses:
+        '200':
+          description: Savings account overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavingsOverview'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+        '503':
+          description: No savings account found in the current session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /savings/transactions:
+    get:
+      summary: Savings account transactions
+      operationId: getSavingsTransactions
+      description: |
+        Returns recent cash transactions for the Tagesgeld account (deposits, withdrawals,
+        interest payouts). Uses the `OvernightOverviewPageData` GraphQL operation.
+        Returns 503 if the session has no savings account.
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+          description: Maximum number of transactions to return.
+      responses:
+        '200':
+          description: List of savings transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [transactions]
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SavingsTransaction'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+        '503':
+          description: No savings account found in the current session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /portfolio/timeseries:
     get:
