@@ -2,15 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { isSessionValid, createSession } from './session.ts';
 import type { Cookie } from '../types.ts';
 
-const mockCookies: Cookie[] = [{
-  name: 'sid',
-  value: 'abc123',
-  domain: 'de.scalable.capital',
-  path: '/',
-  expires: -1,
-  httpOnly: true,
-  secure: true,
-}];
+const mockCookies: Cookie[] = [
+  {
+    name: 'sid',
+    value: 'abc123',
+    domain: 'de.scalable.capital',
+    path: '/',
+    expires: -1,
+    httpOnly: true,
+    secure: true,
+  },
+];
 
 describe('isSessionValid', () => {
   it('returns true when expiresAt is in the future', () => {

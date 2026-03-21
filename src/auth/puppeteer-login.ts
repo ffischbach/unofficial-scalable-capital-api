@@ -1,9 +1,5 @@
 import puppeteer from 'puppeteer';
-import {
-  extractPersonIdFromCookies,
-  extractAccountIds,
-  extractCookies,
-} from './identity.ts';
+import { extractPersonIdFromCookies, extractAccountIds, extractCookies } from './identity.ts';
 import { createSession, persistSession, setSession } from './session.ts';
 import type { Session } from '../types.ts';
 
@@ -25,10 +21,10 @@ export async function runPuppeteerLogin(): Promise<Session> {
     console.log('[login] Browser opened. Please complete login and 2FA (up to 2 minutes)...');
 
     // Step 2: Wait for user to complete login + 2FA
-    await page.waitForFunction(
-      () => !window.location.pathname.includes('secure-login'),
-      { timeout: 120_000, polling: 500 },
-    );
+    await page.waitForFunction(() => !window.location.pathname.includes('secure-login'), {
+      timeout: 120_000,
+      polling: 500,
+    });
 
     console.log(`[login] Login detected. Current URL: ${page.url()}`);
 
@@ -41,16 +37,22 @@ export async function runPuppeteerLogin(): Promise<Session> {
       console.log(`[login] Navigated to cockpit. URL: ${page.url()}`);
     }
 
-    await page.waitForFunction(
-      () => document.querySelector('a[href*="portfolioId="]') !== null,
-      { timeout: 30_000, polling: 500 },
-    ).catch(async () => {
-      const url = await page.evaluate(() => window.location.href);
-      const links = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('a[href]')).map((a) => a.getAttribute('href')).join('\n'),
-      );
-      throw new Error(`[login] Account cards not found after 30s.\nURL: ${url}\nLinks on page:\n${links}`);
-    });
+    await page
+      .waitForFunction(() => document.querySelector('a[href*="portfolioId="]') !== null, {
+        timeout: 30_000,
+        polling: 500,
+      })
+      .catch(async () => {
+        const url = await page.evaluate(() => window.location.href);
+        const links = await page.evaluate(() =>
+          Array.from(document.querySelectorAll('a[href]'))
+            .map((a) => a.getAttribute('href'))
+            .join('\n'),
+        );
+        throw new Error(
+          `[login] Account cards not found after 30s.\nURL: ${url}\nLinks on page:\n${links}`,
+        );
+      });
 
     // Step 4: Extract all identifiers
     const { portfolioId, savingsId } = await extractAccountIds(page);
