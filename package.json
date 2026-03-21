@@ -13,7 +13,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "report-changes": "tsx scripts/report-changes.ts",
-    "report-changes:print": "tsx scripts/report-changes.ts --print"
+    "report-changes:print": "tsx scripts/report-changes.ts --print",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
   },
   "dependencies": {
     "@scalar/express-api-reference": "^0.8.46",
@@ -25,11 +29,16 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.10",
     "@types/ws": "^8.18.1",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
+    "typescript-eslint": "^8.57.1",
     "vitest": "^4.0.18"
   }
 }
