@@ -17,6 +17,7 @@ export interface Session {
   cookies: Cookie[];
   personId: string;
   portfolioId: string;
+  savingsId: string | null;
   authenticatedAt: number;
   expiresAt: number;
 }

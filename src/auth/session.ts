@@ -63,6 +63,7 @@ export function createSession(
   cookies: Cookie[],
   personId: string,
   portfolioId: string,
+  savingsId: string | null,
 ): Session {
   const now = Date.now();
   const validCookieExpiries = cookies
@@ -76,6 +77,7 @@ export function createSession(
     cookies,
     personId,
     portfolioId,
+    savingsId,
     authenticatedAt: now,
     expiresAt,
   };
