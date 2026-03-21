@@ -2,7 +2,7 @@ import type { Page } from 'puppeteer';
 import type { Cookie } from '../types.ts';
 
 export async function extractPersonIdFromCookies(page: Page): Promise<string> {
-  const cookies = await page.cookies();
+  const cookies = await page.browserContext().cookies();
   const sessionCookie = cookies.find((c) => c.name === 'session');
   if (!sessionCookie) throw new Error('[identity] No "session" cookie found.');
 
@@ -39,7 +39,7 @@ export async function extractAccountIds(
 }
 
 export async function extractCookies(page: Page): Promise<Cookie[]> {
-  const puppeteerCookies = await page.cookies();
+  const puppeteerCookies = await page.browserContext().cookies();
   return puppeteerCookies.map((c) => ({
     name: c.name,
     value: c.value,
