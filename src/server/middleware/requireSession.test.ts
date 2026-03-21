@@ -38,7 +38,14 @@ describe('requireSession', () => {
   });
 
   it('responds 401 when session exists but isSessionValid returns false', () => {
-    mockGetSession.mockReturnValue({ cookies: [], personId: '', portfolioId: '', savingsId: null, authenticatedAt: 0, expiresAt: 0 });
+    mockGetSession.mockReturnValue({
+      cookies: [],
+      personId: '',
+      portfolioId: '',
+      savingsId: null,
+      authenticatedAt: 0,
+      expiresAt: 0,
+    });
     mockIsSessionValid.mockReturnValue(false);
     const res = makeMockRes();
     const next = vi.fn();
@@ -48,7 +55,14 @@ describe('requireSession', () => {
   });
 
   it('calls next() when session is valid', () => {
-    mockGetSession.mockReturnValue({ cookies: [], personId: '', portfolioId: '', savingsId: null, authenticatedAt: 0, expiresAt: Date.now() + 9999 });
+    mockGetSession.mockReturnValue({
+      cookies: [],
+      personId: '',
+      portfolioId: '',
+      savingsId: null,
+      authenticatedAt: 0,
+      expiresAt: Date.now() + 9999,
+    });
     mockIsSessionValid.mockReturnValue(true);
     const res = makeMockRes();
     const next = vi.fn();

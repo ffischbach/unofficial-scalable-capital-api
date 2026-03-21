@@ -37,4 +37,3 @@ export interface GatewayConfig {
   port: number;
   token?: string;
 }
-

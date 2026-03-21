@@ -22,7 +22,11 @@ export function createApp(config: GatewayConfig): express.Application {
   if (config.token) {
     const token = config.token;
     app.use((req: Request, res: Response, next: NextFunction) => {
-      if (req.path.startsWith('/auth') || req.path.startsWith('/docs') || req.path === '/openapi.json') {
+      if (
+        req.path.startsWith('/auth') ||
+        req.path.startsWith('/docs') ||
+        req.path === '/openapi.json'
+      ) {
         next();
         return;
       }
