@@ -12,6 +12,7 @@ router.post('/login', async (_req, res) => {
       message: 'Already authenticated.',
       personId: existing.personId,
       portfolioId: existing.portfolioId,
+      savingsId: existing.savingsId,
       expiresAt: existing.expiresAt,
     });
     return;
@@ -23,6 +24,7 @@ router.post('/login', async (_req, res) => {
     message: 'Login successful.',
     personId: session.personId,
     portfolioId: session.portfolioId,
+    savingsId: session.savingsId,
     expiresAt: session.expiresAt,
   });
 });
@@ -38,6 +40,7 @@ router.get('/status', (_req, res) => {
     authenticated: true,
     personId: session.personId,
     portfolioId: session.portfolioId,
+    savingsId: session.savingsId,
     expiresAt: session.expiresAt,
   });
 });
