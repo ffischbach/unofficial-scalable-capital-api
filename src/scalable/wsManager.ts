@@ -1,5 +1,6 @@
 import WebSocket from 'ws';
 import { getSession } from '../auth/session.ts';
+import { ensureLogin } from './client.ts';
 
 const WS_URL = 'wss://de.scalable.capital/broker/subscriptions';
 const USER_AGENT =
@@ -23,6 +24,10 @@ class WebSocketManager {
   private ws: WebSocket | null = null;
   private subs = new Map<string, RegisteredSub>();
   private reconnectTimer: NodeJS.Timeout | null = null;
+  /** Set before closing the WS due to an auth error so the close handler knows to re-auth. */
+  private reauthPending = false;
+  /** Prevents an infinite re-auth loop: only one Puppeteer re-login per connection attempt. */
+  private authRetried = false;
 
   addSub(
     id: string,
@@ -93,6 +98,32 @@ class WebSocketManager {
     this.ws.on('close', (code) => {
       console.log(`[wsManager] WebSocket closed (${code})`);
       this.ws = null;
+
+      const isAuthError = code === 4401 || this.reauthPending;
+      this.reauthPending = false;
+
+      if (isAuthError) {
+        if (this.authRetried) {
+          console.error(
+            '[wsManager] Still unauthorized after re-login — dropping all subscriptions.',
+          );
+          this.subs.clear();
+          return;
+        }
+        this.authRetried = true;
+        console.warn('[wsManager] Auth error — triggering re-login then reconnecting...');
+        ensureLogin().then(
+          () => {
+            if (this.subs.size > 0) this.connect();
+          },
+          (err: unknown) => {
+            console.error('[wsManager] Re-login failed:', (err as Error).message);
+            this.subs.clear();
+          },
+        );
+        return;
+      }
+
       if (this.subs.size > 0) this.scheduleReconnect();
     });
 
@@ -113,6 +144,7 @@ class WebSocketManager {
 
     switch (msg.type) {
       case 'connection_ack':
+        this.authRetried = false;
         console.log(`[wsManager] connection_ack — subscribing ${this.subs.size} subscription(s)`);
         for (const id of this.subs.keys()) {
           this.sendSubscribe(id);
@@ -137,19 +169,18 @@ class WebSocketManager {
         break;
 
       case 'error': {
-        console.error(
-          '[wsManager] Subscription error for',
-          msg.id,
-          ':',
-          JSON.stringify(msg.payload),
-        );
         const errors = msg.payload as Array<{ extensions?: { code?: string } }> | undefined;
         if (errors?.some((e) => e.extensions?.code === 'UNAUTHENTICATED')) {
-          console.warn(
-            '[wsManager] Session invalid — dropping all subscriptions. Run POST /auth/login to re-authenticate.',
+          console.warn('[wsManager] UNAUTHENTICATED — closing for re-auth...');
+          this.reauthPending = true;
+          this.ws?.close();
+        } else {
+          console.error(
+            '[wsManager] Subscription error for',
+            msg.id,
+            ':',
+            JSON.stringify(msg.payload),
           );
-          this.subs.clear();
-          this.disconnect();
         }
         break;
       }

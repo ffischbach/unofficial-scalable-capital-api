@@ -7,7 +7,7 @@ const GRAPHQL_URL = 'https://de.scalable.capital/broker/api/data';
 
 let loginInProgress: Promise<void> | null = null;
 
-async function ensureLogin(): Promise<void> {
+export async function ensureLogin(): Promise<void> {
   if (loginInProgress) {
     await loginInProgress;
     return;
