@@ -4,6 +4,23 @@ import type { Cookie, GraphQLRequest, GraphQLResponse } from '../types.ts';
 import { checkResponseShape } from './apiMonitor.ts';
 
 const GRAPHQL_URL = 'https://de.scalable.capital/broker/api/data';
+
+let loginInProgress: Promise<void> | null = null;
+
+async function ensureLogin(): Promise<void> {
+  if (loginInProgress) {
+    await loginInProgress;
+    return;
+  }
+  loginInProgress = runPuppeteerLogin().then(() => {
+    loginInProgress = null;
+  }, (err) => {
+    loginInProgress = null;
+    throw err;
+  });
+  await loginInProgress;
+}
+
 const USER_AGENT =
   'unofficial-sc-api/0.1.0 (https://github.com/ffischbach/unofficial-scalable-capital-api)';
 
@@ -61,7 +78,7 @@ export async function graphqlRequest<T>(
   if (!isSessionValid(session)) {
     if (retried) throw new AuthenticationError('Session expired and re-login failed.');
     console.log('[client] Session expired — triggering re-login...');
-    await runPuppeteerLogin();
+    await ensureLogin();
     return graphqlRequest<T>(body, true);
   }
 
@@ -75,7 +92,7 @@ export async function graphqlRequest<T>(
     const status = (err as { status?: number }).status;
     if ((status === 401 || status === 403) && !retried) {
       console.log(`[client] Got ${status} — triggering re-login...`);
-      await runPuppeteerLogin();
+      await ensureLogin();
       return graphqlRequest<T>(body, true);
     }
     throw err;
