@@ -2,7 +2,28 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
 import type { Cookie, Session } from '../types.ts';
+
+const CookieSchema = z.object({
+  name: z.string(),
+  value: z.string(),
+  domain: z.string(),
+  path: z.string(),
+  expires: z.number(),
+  httpOnly: z.boolean(),
+  secure: z.boolean(),
+  sameSite: z.enum(['Strict', 'Lax', 'None']).optional(),
+});
+
+const SessionSchema = z.object({
+  cookies: z.array(CookieSchema),
+  personId: z.string(),
+  portfolioId: z.string(),
+  savingsId: z.string().nullable(),
+  authenticatedAt: z.number(),
+  expiresAt: z.number(),
+});
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 
@@ -25,7 +46,12 @@ export function isSessionValid(session: Session): boolean {
 export async function loadSessionFromDisk(): Promise<void> {
   try {
     const raw = await fs.readFile(SESSION_FILE, 'utf-8');
-    const session = JSON.parse(raw) as Session;
+    const parsed = SessionSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) {
+      console.warn('[session] session.json failed validation — ignoring.', parsed.error.format());
+      return;
+    }
+    const session: Session = parsed.data;
     if (!isSessionValid(session)) {
       console.log('[session] Found session.json but it has expired — ignoring.');
       return;
