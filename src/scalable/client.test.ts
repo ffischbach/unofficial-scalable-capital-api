@@ -85,6 +85,7 @@ describe('graphqlRequest — login mutex', () => {
     personId: 'uid',
     savingsId: null,
     expiresAt: Date.now() + 60_000,
+    authenticatedAt: Date.now(),
   };
 
   beforeEach(() => {
