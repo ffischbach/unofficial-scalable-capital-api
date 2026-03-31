@@ -1,7 +1,5 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import express from 'express';
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { makeMockSession, setupRouteTest } from './test-helpers.ts';
 
 vi.mock('../middleware/requireSession.ts', () => ({
   requireSession: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
@@ -22,39 +20,19 @@ import router from './securities.ts';
 const mockGetSession = vi.mocked(getSession);
 const mockGraphqlRequest = vi.mocked(graphqlRequest);
 
-const mockSession = {
-  cookies: [],
-  personId: 'person-1',
-  portfolioId: 'portfolio-1',
-  savingsId: null,
-  authenticatedAt: Date.now(),
-  expiresAt: Date.now() + 60_000,
-};
-
 const VALID_ISIN = 'US0378331005';
 const INVALID_ISIN = 'TOOSHORT';
 
-let baseUrl: string;
-let server: ReturnType<typeof createServer>;
-
-beforeAll(async () => {
-  const app = express();
-  app.use('/', router);
-  server = createServer(app);
-  await new Promise<void>(resolve => server.listen(0, resolve));
-  baseUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
-});
-
-afterAll(() => new Promise<void>(resolve => server.close(() => resolve())));
+const ctx = setupRouteTest(router);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetSession.mockReturnValue(mockSession);
+  mockGetSession.mockReturnValue(makeMockSession());
 });
 
 describe('ISIN validation', () => {
   it('returns 400 for an invalid ISIN param', async () => {
-    const res = await fetch(`${baseUrl}/${INVALID_ISIN}`);
+    const res = await fetch(`${ctx.baseUrl}/${INVALID_ISIN}`);
     const body = await res.json();
 
     expect(res.status).toBe(400);
@@ -64,7 +42,7 @@ describe('ISIN validation', () => {
   it('accepts a valid 12-character alphanumeric ISIN', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    const res = await fetch(`${baseUrl}/${VALID_ISIN}`);
+    const res = await fetch(`${ctx.baseUrl}/${VALID_ISIN}`);
 
     expect(res.status).toBe(200);
   });
@@ -75,7 +53,7 @@ describe('GET /:isin', () => {
     const data = { account: { brokerPortfolio: { security: {} } } };
     mockGraphqlRequest.mockResolvedValue({ data });
 
-    const res = await fetch(`${baseUrl}/${VALID_ISIN}`);
+    const res = await fetch(`${ctx.baseUrl}/${VALID_ISIN}`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -91,7 +69,7 @@ describe('GET /:isin', () => {
   it('returns 502 on GraphQL errors', async () => {
     mockGraphqlRequest.mockResolvedValue({ errors: [{ message: 'not found' }] });
 
-    const res = await fetch(`${baseUrl}/${VALID_ISIN}`);
+    const res = await fetch(`${ctx.baseUrl}/${VALID_ISIN}`);
 
     expect(res.status).toBe(502);
   });
@@ -101,7 +79,7 @@ describe('GET /:isin/info', () => {
   it('calls getSecurityInfo', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/info`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/info`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({ operationName: 'getSecurityInfo' }),
@@ -113,7 +91,7 @@ describe('GET /:isin/static', () => {
   it('calls getStaticSecurityInfo', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/static`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/static`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({ operationName: 'getStaticSecurityInfo' }),
@@ -125,7 +103,7 @@ describe('GET /:isin/tick', () => {
   it('passes source and includeYearToDate query params', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/tick?source=XETRA&includeYearToDate=true`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/tick?source=XETRA&includeYearToDate=true`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,7 +120,7 @@ describe('GET /:isin/tick', () => {
   it('defaults source to null and includeYearToDate to undefined', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/tick`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/tick`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -156,7 +134,7 @@ describe('GET /:isin/timeseries', () => {
   it('uses all timeframes by default', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/timeseries`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/timeseries`);
 
     const call = mockGraphqlRequest.mock.calls[0][0];
     expect(call.variables).toMatchObject({ isin: VALID_ISIN });
@@ -167,7 +145,7 @@ describe('GET /:isin/timeseries', () => {
   it('uses custom timeframes from query param', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/timeseries?timeframes=ONE_WEEK,ONE_MONTH`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/timeseries?timeframes=ONE_WEEK,ONE_MONTH`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -179,7 +157,7 @@ describe('GET /:isin/timeseries', () => {
   it('does not pass session ids (no personId/portfolioId)', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/timeseries`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/timeseries`);
 
     const variables = mockGraphqlRequest.mock.calls[0][0].variables as Record<string, unknown>;
     expect(variables).not.toHaveProperty('personId');
@@ -191,7 +169,7 @@ describe('GET /:isin/tradability', () => {
   it('calls getTradingTradability with session ids and isin', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/tradability`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/tradability`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -206,7 +184,7 @@ describe('GET /:isin/buyable', () => {
   it('passes custodianBanks as array when provided', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/buyable?custodianBanks=BAADER,FLATEX`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/buyable?custodianBanks=BAADER,FLATEX`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -219,7 +197,7 @@ describe('GET /:isin/buyable', () => {
   it('omits custodianBanks when not provided', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/${VALID_ISIN}/buyable`);
+    await fetch(`${ctx.baseUrl}/${VALID_ISIN}/buyable`);
 
     const variables = mockGraphqlRequest.mock.calls[0][0].variables as Record<string, unknown>;
     expect(variables['custodianBanks']).toBeUndefined();

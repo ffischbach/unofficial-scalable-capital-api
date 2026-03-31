@@ -1,7 +1,5 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import express from 'express';
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { makeMockSession, setupRouteTest } from './test-helpers.ts';
 
 vi.mock('../middleware/requireSession.ts', () => ({
   requireSession: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
@@ -28,31 +26,11 @@ const mockGetSession = vi.mocked(getSession);
 const mockGraphqlRequest = vi.mocked(graphqlRequest);
 const mockFetchLatest = vi.mocked(subscriptionManager.fetchLatest);
 
-const mockSession = {
-  cookies: [],
-  personId: 'person-1',
-  portfolioId: 'portfolio-1',
-  savingsId: null,
-  authenticatedAt: Date.now(),
-  expiresAt: Date.now() + 60_000,
-};
-
-let baseUrl: string;
-let server: ReturnType<typeof createServer>;
-
-beforeAll(async () => {
-  const app = express();
-  app.use('/', router);
-  server = createServer(app);
-  await new Promise<void>(resolve => server.listen(0, resolve));
-  baseUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
-});
-
-afterAll(() => new Promise<void>(resolve => server.close(() => resolve())));
+const ctx = setupRouteTest(router);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetSession.mockReturnValue(mockSession);
+  mockGetSession.mockReturnValue(makeMockSession());
 });
 
 describe('GET /', () => {
@@ -67,7 +45,7 @@ describe('GET /', () => {
     };
     mockFetchLatest.mockResolvedValue(realtimeData as never);
 
-    const res = await fetch(`${baseUrl}/`);
+    const res = await fetch(`${ctx.baseUrl}/`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -77,7 +55,7 @@ describe('GET /', () => {
   it('returns source: unavailable when no realtime data', async () => {
     mockFetchLatest.mockResolvedValue(null);
 
-    const res = await fetch(`${baseUrl}/`);
+    const res = await fetch(`${ctx.baseUrl}/`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -90,7 +68,7 @@ describe('GET /inventory', () => {
     const data = { account: { brokerPortfolio: { groups: [] } } };
     mockGraphqlRequest.mockResolvedValue({ data });
 
-    const res = await fetch(`${baseUrl}/inventory`);
+    const res = await fetch(`${ctx.baseUrl}/inventory`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -106,7 +84,7 @@ describe('GET /inventory', () => {
   it('returns 502 on GraphQL errors', async () => {
     mockGraphqlRequest.mockResolvedValue({ errors: [{ message: 'upstream error' }] });
 
-    const res = await fetch(`${baseUrl}/inventory`);
+    const res = await fetch(`${ctx.baseUrl}/inventory`);
     const body = await res.json();
 
     expect(res.status).toBe(502);
@@ -118,7 +96,7 @@ describe('GET /watchlist', () => {
   it('calls getSuspenseWatchlist with session ids', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/watchlist`);
+    await fetch(`${ctx.baseUrl}/watchlist`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -134,7 +112,7 @@ describe('GET /cash', () => {
     const data = { account: { brokerPortfolio: { cashBreakdown: {} } } };
     mockGraphqlRequest.mockResolvedValue({ data });
 
-    const res = await fetch(`${baseUrl}/cash`);
+    const res = await fetch(`${ctx.baseUrl}/cash`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -149,7 +127,7 @@ describe('GET /timeseries', () => {
   it('passes includeYearToDate=true when query param is "true"', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/timeseries?includeYearToDate=true`);
+    await fetch(`${ctx.baseUrl}/timeseries?includeYearToDate=true`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -162,7 +140,7 @@ describe('GET /timeseries', () => {
   it('passes includeYearToDate=undefined when query param is absent', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    await fetch(`${baseUrl}/timeseries`);
+    await fetch(`${ctx.baseUrl}/timeseries`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -174,7 +152,7 @@ describe('GET /timeseries', () => {
   it('returns 502 on GraphQL errors', async () => {
     mockGraphqlRequest.mockResolvedValue({ errors: [{ message: 'bad' }] });
 
-    const res = await fetch(`${baseUrl}/timeseries`);
+    const res = await fetch(`${ctx.baseUrl}/timeseries`);
 
     expect(res.status).toBe(502);
   });

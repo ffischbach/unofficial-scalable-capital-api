@@ -1,7 +1,5 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import express from 'express';
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { makeMockSession, setupRouteTest } from './test-helpers.ts';
 
 vi.mock('../middleware/requireSession.ts', () => ({
   requireSession: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
@@ -22,29 +20,10 @@ import router from './savings.ts';
 const mockGetSession = vi.mocked(getSession);
 const mockGraphqlRequest = vi.mocked(graphqlRequest);
 
-const sessionWithSavings = {
-  cookies: [],
-  personId: 'person-1',
-  portfolioId: 'portfolio-1',
-  savingsId: 'savings-1',
-  authenticatedAt: Date.now(),
-  expiresAt: Date.now() + 60_000,
-};
+const sessionWithSavings = makeMockSession({ savingsId: 'savings-1' });
+const sessionWithoutSavings = makeMockSession({ savingsId: null });
 
-const sessionWithoutSavings = { ...sessionWithSavings, savingsId: null };
-
-let baseUrl: string;
-let server: ReturnType<typeof createServer>;
-
-beforeAll(async () => {
-  const app = express();
-  app.use('/', router);
-  server = createServer(app);
-  await new Promise<void>(resolve => server.listen(0, resolve));
-  baseUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
-});
-
-afterAll(() => new Promise<void>(resolve => server.close(() => resolve())));
+const ctx = setupRouteTest(router);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -54,7 +33,7 @@ describe('GET /', () => {
   it('returns 503 when session has no savingsId', async () => {
     mockGetSession.mockReturnValue(sessionWithoutSavings);
 
-    const res = await fetch(`${baseUrl}/`);
+    const res = await fetch(`${ctx.baseUrl}/`);
     const body = await res.json();
 
     expect(res.status).toBe(503);
@@ -75,7 +54,7 @@ describe('GET /', () => {
       data: { account: { savingsAccount } },
     });
 
-    const res = await fetch(`${baseUrl}/`);
+    const res = await fetch(`${ctx.baseUrl}/`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -92,7 +71,7 @@ describe('GET /', () => {
     mockGetSession.mockReturnValue(sessionWithSavings);
     mockGraphqlRequest.mockResolvedValue({ data: { account: { savingsAccount: {} } } });
 
-    await fetch(`${baseUrl}/`);
+    await fetch(`${ctx.baseUrl}/`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -106,7 +85,7 @@ describe('GET /', () => {
     mockGetSession.mockReturnValue(sessionWithSavings);
     mockGraphqlRequest.mockResolvedValue({ errors: [{ message: 'upstream error' }] });
 
-    const res = await fetch(`${baseUrl}/`);
+    const res = await fetch(`${ctx.baseUrl}/`);
 
     expect(res.status).toBe(502);
   });
@@ -116,7 +95,7 @@ describe('GET /transactions', () => {
   it('returns 503 when session has no savingsId', async () => {
     mockGetSession.mockReturnValue(sessionWithoutSavings);
 
-    const res = await fetch(`${baseUrl}/transactions`);
+    const res = await fetch(`${ctx.baseUrl}/transactions`);
     const body = await res.json();
 
     expect(res.status).toBe(503);
@@ -130,7 +109,7 @@ describe('GET /transactions', () => {
   ])('returns 400 for limit=%s (%s)', async (limit) => {
     mockGetSession.mockReturnValue(sessionWithSavings);
 
-    const res = await fetch(`${baseUrl}/transactions?limit=${limit}`);
+    const res = await fetch(`${ctx.baseUrl}/transactions?limit=${limit}`);
     const body = await res.json();
 
     expect(res.status).toBe(400);
@@ -141,7 +120,7 @@ describe('GET /transactions', () => {
     mockGetSession.mockReturnValue(sessionWithSavings);
     mockGraphqlRequest.mockResolvedValue({ data: { account: { savingsAccount: {} } } });
 
-    await fetch(`${baseUrl}/transactions`);
+    await fetch(`${ctx.baseUrl}/transactions`);
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -162,7 +141,7 @@ describe('GET /transactions', () => {
       },
     });
 
-    const res = await fetch(`${baseUrl}/transactions`);
+    const res = await fetch(`${ctx.baseUrl}/transactions`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -173,7 +152,7 @@ describe('GET /transactions', () => {
     mockGetSession.mockReturnValue(sessionWithSavings);
     mockGraphqlRequest.mockResolvedValue({ data: { account: { savingsAccount: {} } } });
 
-    const res = await fetch(`${baseUrl}/transactions`);
+    const res = await fetch(`${ctx.baseUrl}/transactions`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -184,7 +163,7 @@ describe('GET /transactions', () => {
     mockGetSession.mockReturnValue(sessionWithSavings);
     mockGraphqlRequest.mockResolvedValue({ errors: [{ message: 'bad' }] });
 
-    const res = await fetch(`${baseUrl}/transactions`);
+    const res = await fetch(`${ctx.baseUrl}/transactions`);
 
     expect(res.status).toBe(502);
   });

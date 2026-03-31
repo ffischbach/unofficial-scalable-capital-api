@@ -1,7 +1,5 @@
-import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
-import express from 'express';
-import { createServer } from 'node:http';
-import type { AddressInfo } from 'node:net';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { makeMockSession, setupRouteTest } from './test-helpers.ts';
 
 vi.mock('../middleware/requireSession.ts', () => ({
   requireSession: vi.fn((_req: unknown, _res: unknown, next: () => void) => next()),
@@ -22,31 +20,11 @@ import router from './transactions.ts';
 const mockGetSession = vi.mocked(getSession);
 const mockGraphqlRequest = vi.mocked(graphqlRequest);
 
-const mockSession = {
-  cookies: [],
-  personId: 'person-1',
-  portfolioId: 'portfolio-1',
-  savingsId: null,
-  authenticatedAt: Date.now(),
-  expiresAt: Date.now() + 60_000,
-};
-
-let baseUrl: string;
-let server: ReturnType<typeof createServer>;
-
-beforeAll(async () => {
-  const app = express();
-  app.use('/', router);
-  server = createServer(app);
-  await new Promise<void>(resolve => server.listen(0, resolve));
-  baseUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
-});
-
-afterAll(() => new Promise<void>(resolve => server.close(() => resolve())));
+const ctx = setupRouteTest(router);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetSession.mockReturnValue(mockSession);
+  mockGetSession.mockReturnValue(makeMockSession());
 });
 
 describe('GET / — pageSize validation', () => {
@@ -56,7 +34,7 @@ describe('GET / — pageSize validation', () => {
     ['abc', 'non-numeric'],
     ['1.5', 'non-integer'],
   ])('returns 400 for pageSize=%s (%s)', async (pageSize) => {
-    const res = await fetch(`${baseUrl}/?pageSize=${pageSize}`);
+    const res = await fetch(`${ctx.baseUrl}/?pageSize=${pageSize}`);
     const body = await res.json();
 
     expect(res.status).toBe(400);
@@ -66,17 +44,17 @@ describe('GET / — pageSize validation', () => {
   it('accepts boundary values 1 and 200', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    const res1 = await fetch(`${baseUrl}/?pageSize=1`);
+    const res1 = await fetch(`${ctx.baseUrl}/?pageSize=1`);
     expect(res1.status).toBe(200);
 
-    const res200 = await fetch(`${baseUrl}/?pageSize=200`);
+    const res200 = await fetch(`${ctx.baseUrl}/?pageSize=200`);
     expect(res200.status).toBe(200);
   });
 });
 
 describe('GET / — isin validation', () => {
   it('returns 400 for an invalid ISIN', async () => {
-    const res = await fetch(`${baseUrl}/?isin=TOOSHORT`);
+    const res = await fetch(`${ctx.baseUrl}/?isin=TOOSHORT`);
     const body = await res.json();
 
     expect(res.status).toBe(400);
@@ -86,7 +64,7 @@ describe('GET / — isin validation', () => {
   it('accepts a valid 12-character ISIN', async () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
-    const res = await fetch(`${baseUrl}/?isin=US0378331005`);
+    const res = await fetch(`${ctx.baseUrl}/?isin=US0378331005`);
 
     expect(res.status).toBe(200);
   });
@@ -97,7 +75,7 @@ describe('GET / — success', () => {
     const data = { account: { brokerPortfolio: { moreTransactions: { transactions: [] } } } };
     mockGraphqlRequest.mockResolvedValue({ data });
 
-    const res = await fetch(`${baseUrl}/`);
+    const res = await fetch(`${ctx.baseUrl}/`);
     const body = await res.json();
 
     expect(res.status).toBe(200);
@@ -118,7 +96,7 @@ describe('GET / — success', () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
     await fetch(
-      `${baseUrl}/?pageSize=50&cursor=abc123&isin=US0378331005&searchTerm=apple&type=BUY,SELL&status=EXECUTED`,
+      `${ctx.baseUrl}/?pageSize=50&cursor=abc123&isin=US0378331005&searchTerm=apple&type=BUY,SELL&status=EXECUTED`,
     );
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
@@ -140,7 +118,7 @@ describe('GET / — success', () => {
   it('returns 502 on GraphQL errors', async () => {
     mockGraphqlRequest.mockResolvedValue({ errors: [{ message: 'upstream failure' }] });
 
-    const res = await fetch(`${baseUrl}/`);
+    const res = await fetch(`${ctx.baseUrl}/`);
 
     expect(res.status).toBe(502);
   });
