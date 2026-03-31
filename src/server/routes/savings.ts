@@ -51,7 +51,12 @@ router.get('/transactions', requireSession, async (req, res) => {
     return;
   }
 
-  const pageSize = req.query['limit'] ? Number(req.query['limit']) : 50;
+  const rawLimit = req.query['limit'];
+  const pageSize = rawLimit !== undefined ? Number(rawLimit) : 50;
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 200) {
+    res.status(400).json({ error: 'limit must be an integer between 1 and 200' });
+    return;
+  }
 
   const result = await graphqlRequest<{ account: { savingsAccount: OvernightSavingsAccount } }>({
     operationName: 'OvernightOverviewPageData',

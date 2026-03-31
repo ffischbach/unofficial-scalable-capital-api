@@ -3,15 +3,28 @@ import { requireSession } from '../middleware/requireSession.ts';
 import { getSession } from '../../auth/session.ts';
 import { graphqlRequest } from '../../scalable/client.ts';
 import { MORE_TRANSACTIONS } from '../../scalable/operations/transactions.ts';
+import { ISIN_RE } from './validate.ts';
 
 const router = Router();
 
 // GET /transactions
 router.get('/', requireSession, async (req, res) => {
   const session = getSession()!;
-  const pageSize = req.query['pageSize'] ? Number(req.query['pageSize']) : 20;
+  const rawPageSize = req.query['pageSize'];
+  const pageSize = rawPageSize !== undefined ? Number(rawPageSize) : 20;
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 200) {
+    res.status(400).json({ error: 'pageSize must be an integer between 1 and 200' });
+    return;
+  }
+
   const cursor = req.query['cursor'] ? String(req.query['cursor']) : null;
-  const isin = req.query['isin'] ? String(req.query['isin']) : undefined;
+
+  const rawIsin = req.query['isin'];
+  const isin = rawIsin !== undefined ? String(rawIsin) : undefined;
+  if (isin !== undefined && !ISIN_RE.test(isin)) {
+    res.status(400).json({ error: 'isin must be a 12-character alphanumeric string' });
+    return;
+  }
   const searchTerm = req.query['searchTerm'] ? String(req.query['searchTerm']) : '';
   const type = req.query['type'] ? String(req.query['type']).split(',') : [];
   const status = req.query['status'] ? String(req.query['status']).split(',') : [];

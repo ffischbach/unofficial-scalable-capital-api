@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { requireSession } from '../middleware/requireSession.ts';
 import { quoteManager } from '../../scalable/quoteSubscription.ts';
+import { ISIN_RE } from './validate.ts';
 
 const router = Router();
 
@@ -32,6 +33,12 @@ router.get('/stream', requireSession, (req: Request, res: Response) => {
     res
       .status(400)
       .json({ error: 'Query parameter "isins" is required (comma-separated list of ISINs).' });
+    return;
+  }
+
+  const invalid = isins.filter((s) => !ISIN_RE.test(s));
+  if (invalid.length > 0) {
+    res.status(400).json({ error: `Invalid ISINs: ${invalid.join(', ')}` });
     return;
   }
 

@@ -11,8 +11,17 @@ import {
   GET_TRADING_TRADABILITY,
   IS_SECURITY_BUYABLE,
 } from '../../scalable/operations/securities.ts';
+import { ISIN_RE } from './validate.ts';
 
 const router = Router();
+
+router.param('isin', (req, res, next, value: string) => {
+  if (!ISIN_RE.test(value)) {
+    res.status(400).json({ error: 'isin must be a 12-character alphanumeric string' });
+    return;
+  }
+  next();
+});
 
 const ALL_TIMEFRAMES = [
   'TWO_DAYS',
