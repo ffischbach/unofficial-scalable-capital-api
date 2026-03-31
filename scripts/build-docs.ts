@@ -6,8 +6,15 @@ import { parse as parseYaml } from 'yaml';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, '..');
 
-const spec = parseYaml(readFileSync(join(root, 'openapi.yaml'), 'utf-8'));
-const specJson = JSON.stringify(spec);
+let spec: ReturnType<typeof parseYaml>;
+try {
+  spec = parseYaml(readFileSync(join(root, 'openapi.yaml'), 'utf-8'));
+} catch (err) {
+  console.error('Failed to read or parse openapi.yaml:', err instanceof Error ? err.message : err);
+  process.exit(1);
+}
+
+const specJson = JSON.stringify(spec).replace(/<\/script>/gi, '<\\/script>');
 
 const html = `<!doctype html>
 <html lang="en">
@@ -18,7 +25,7 @@ const html = `<!doctype html>
   </head>
   <body>
     <script id="api-reference" type="application/json">${specJson}</script>
-    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.49.8"></script>
   </body>
 </html>`;
 
