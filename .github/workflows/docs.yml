@@ -30,7 +30,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --omit=optional --ignore-scripts
 
       - run: npm run docs
 
