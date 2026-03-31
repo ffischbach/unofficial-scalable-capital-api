@@ -100,7 +100,6 @@ Interactive docs are available at **http://127.0.0.1:3141/docs** once the server
 | Method | Path                  | Description                                                          |
 |--------|-----------------------|----------------------------------------------------------------------|
 | `GET`  | `/transactions`       | Transaction history — paginated (`?pageSize`, `?cursor`, `?isin`, `?type`, `?status`, `?searchTerm`) |
-| `GET`  | `/transactions/:id`   | Single transaction details                                           |
 
 ### Savings (Tagesgeld)
 
