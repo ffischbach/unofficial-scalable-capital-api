@@ -1,6 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildCookieHeader, buildHeaders, AuthenticationError } from './client.ts';
 import type { Cookie } from '../types.ts';
+
+vi.mock('../auth/puppeteer-login.ts', () => ({ runPuppeteerLogin: vi.fn() }));
+vi.mock('../auth/session.ts', () => ({ getSession: vi.fn(), isSessionValid: vi.fn() }));
+vi.mock('./apiMonitor.ts', () => ({ checkResponseShape: vi.fn() }));
 
 function makeCookie(name: string, value: string): Cookie {
   return {
@@ -71,5 +75,52 @@ describe('AuthenticationError', () => {
 
   it('accepts a custom message', () => {
     expect(new AuthenticationError('custom').message).toBe('custom');
+  });
+});
+
+describe('graphqlRequest — login mutex', () => {
+  const mockSession = {
+    cookies: [makeCookie('sid', 'abc')],
+    portfolioId: 'pid',
+    personId: 'uid',
+    savingsId: null,
+    expiresAt: Date.now() + 60_000,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('only calls runPuppeteerLogin once when two requests hit 401 concurrently', async () => {
+    const { runPuppeteerLogin } = await import('../auth/puppeteer-login.ts');
+    const { getSession, isSessionValid } = await import('../auth/session.ts');
+    const { graphqlRequest } = await import('./client.ts');
+
+    vi.mocked(getSession).mockReturnValue(mockSession);
+    vi.mocked(isSessionValid).mockReturnValue(true);
+
+    // Slow login so the second concurrent 401 arrives while the first login is in-flight
+    vi.mocked(runPuppeteerLogin).mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 50)),
+    );
+
+    let fetchCallCount = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(() => {
+        fetchCallCount++;
+        if (fetchCallCount <= 2) {
+          // Both concurrent requests get a 401
+          return Promise.resolve({ ok: false, status: 401, text: () => Promise.resolve('') });
+        }
+        // Retries after login succeed
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ data: {} }) });
+      }),
+    );
+
+    const body = { query: '{ test }', operationName: 'test', variables: {} };
+    await Promise.all([graphqlRequest(body), graphqlRequest(body)]);
+
+    expect(runPuppeteerLogin).toHaveBeenCalledTimes(1);
   });
 });
