@@ -17,7 +17,8 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write src",
-    "format:check": "prettier --check src"
+    "format:check": "prettier --check src",
+    "docs": "tsx scripts/build-docs.ts"
   },
   "dependencies": {
     "@scalar/express-api-reference": "^0.8.46",
