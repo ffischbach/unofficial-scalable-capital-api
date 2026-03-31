@@ -46,16 +46,27 @@ export function buildHeaders(portfolioId: string, cookieHeader: string): Record<
   };
 }
 
+const FETCH_TIMEOUT_MS = 30_000;
+
 async function executeRequest<T>(
   body: GraphQLRequest,
   portfolioId: string,
   cookieHeader: string,
 ): Promise<GraphQLResponse<T>> {
-  const response = await fetch(GRAPHQL_URL, {
-    method: 'POST',
-    headers: buildHeaders(portfolioId, cookieHeader),
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(GRAPHQL_URL, {
+      method: 'POST',
+      headers: buildHeaders(portfolioId, cookieHeader),
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     const status = response.status;
