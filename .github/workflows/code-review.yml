@@ -14,9 +14,10 @@ jobs:
   review:
     name: Claude Code Review
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     # Automatic trigger: only for PRs from the same repo (no fork abuse)
-    # Manual trigger: only when @claude review is mentioned in a PR comment
+    # Manual trigger: only when @claude review is mentioned in a PR comment by a collaborator/owner
     if: |
       (
         github.event_name == 'pull_request' &&
@@ -24,15 +25,20 @@ jobs:
       ) || (
         github.event_name == 'issue_comment' &&
         github.event.issue.pull_request != null &&
-        contains(github.event.comment.body, '@claude review')
+        contains(github.event.comment.body, '@claude review') &&
+        (
+          github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR'
+        )
       )
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@88c168b39e7e64da0286d812b6e9fbebb6708185 # v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: claude-sonnet-4-6
