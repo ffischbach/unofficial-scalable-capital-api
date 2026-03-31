@@ -1,0 +1,55 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+
+    # Automatic trigger: only for PRs from the same repo (no fork abuse)
+    # Manual trigger: only when @claude review is mentioned in a PR comment
+    if: |
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      ) || (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '@claude review')
+      )
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: claude-sonnet-4-6
+          max_turns: "5"
+          prompt: |
+            Review this pull request thoroughly. Focus on:
+            - Correctness and logic errors
+            - Security vulnerabilities (injection, auth issues, secrets in code)
+            - TypeScript type safety
+            - ESM/import correctness (this project uses ESM with .ts extensions)
+            - Express 5 and Puppeteer best practices
+            - Session handling and cookie security (see src/auth/)
+
+            Post findings as inline review comments with severity:
+            - 🔴 Important: must fix before merge
+            - 🟡 Nit: minor improvement, not blocking
+            - 🟣 Pre-existing: bug not introduced by this PR
+
+            Skip formatting-only changes and generated files.
+            Refer to CLAUDE.md for project architecture and constraints.
