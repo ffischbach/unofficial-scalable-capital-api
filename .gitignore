@@ -7,3 +7,4 @@ session.json
 /graphql-apis/
 api-changes.json
 *.tmp
+docs/
