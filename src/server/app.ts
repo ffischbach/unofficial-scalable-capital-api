@@ -58,6 +58,11 @@ export function createApp(config: GatewayConfig): express.Application {
   app.use('/transactions', transactionsRouter);
   app.use('/savings', savingsRouter);
 
+  // 404 catch-all — must be before error handler
+  app.use((_req: Request, res: Response) => {
+    res.status(404).json({ error: 'Not found.' });
+  });
+
   // Error handler — must be last
   app.use(errorHandler);
 
