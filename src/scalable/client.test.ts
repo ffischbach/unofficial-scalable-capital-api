@@ -124,7 +124,7 @@ describe('graphqlRequest — expired session', () => {
 
   it('triggers re-login and retries when session is expired', async () => {
     vi.mocked(isSessionValid).mockReturnValueOnce(false).mockReturnValue(true);
-    vi.mocked(runPuppeteerLogin).mockResolvedValue(undefined);
+    vi.mocked(runPuppeteerLogin).mockResolvedValue(undefined as unknown as Session);
     vi.stubGlobal('fetch', vi.fn().mockReturnValue(okFetch({ result: 'ok' })));
 
     const result = await graphqlRequest(body);
@@ -135,7 +135,7 @@ describe('graphqlRequest — expired session', () => {
 
   it('throws "Session expired and re-login failed." when session is still invalid after re-login', async () => {
     vi.mocked(isSessionValid).mockReturnValue(false);
-    vi.mocked(runPuppeteerLogin).mockResolvedValue(undefined);
+    vi.mocked(runPuppeteerLogin).mockResolvedValue(undefined as unknown as Session);
 
     await expect(graphqlRequest(body)).rejects.toThrow('Session expired and re-login failed.');
     expect(runPuppeteerLogin).toHaveBeenCalledTimes(1);
@@ -185,7 +185,7 @@ describe('graphqlRequest — auto-retry', () => {
     vi.clearAllMocks();
     vi.mocked(getSession).mockReturnValue(baseSession);
     vi.mocked(isSessionValid).mockReturnValue(true);
-    vi.mocked(runPuppeteerLogin).mockResolvedValue(undefined);
+    vi.mocked(runPuppeteerLogin).mockResolvedValue(undefined as unknown as Session);
   });
 
   it('re-logs in and retries once on 401', async () => {

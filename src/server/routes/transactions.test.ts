@@ -70,6 +70,51 @@ describe('GET / — isin validation', () => {
   });
 });
 
+describe('GET /:id — transaction details', () => {
+  it('passes transactionId and session ids to the GraphQL query', async () => {
+    const data = { account: { brokerPortfolio: { transactionDetails: { id: 'tx-1' } } } };
+    mockGraphqlRequest.mockResolvedValue({ data });
+
+    const res = await fetch(`${ctx.baseUrl}/tx-1`);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body).toEqual(data);
+    expect(mockGraphqlRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationName: 'getTransactionDetails',
+        variables: { personId: 'person-1', portfolioId: 'portfolio-1', transactionId: 'tx-1' },
+      }),
+    );
+  });
+
+  it('returns 400 for an invalid transaction id', async () => {
+    const res = await fetch(`${ctx.baseUrl}/inv@lid!id`);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body).toHaveProperty('error');
+  });
+
+  it('returns 404 when transactionDetails is null', async () => {
+    mockGraphqlRequest.mockResolvedValue({
+      data: { account: { brokerPortfolio: { transactionDetails: null } } },
+    });
+
+    const res = await fetch(`${ctx.baseUrl}/tx-not-found`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 502 on GraphQL errors', async () => {
+    mockGraphqlRequest.mockResolvedValue({ errors: [{ message: 'not found' }] });
+
+    const res = await fetch(`${ctx.baseUrl}/tx-missing`);
+
+    expect(res.status).toBe(502);
+  });
+});
+
 describe('GET / — success', () => {
   it('uses default params when none provided', async () => {
     const data = { account: { brokerPortfolio: { moreTransactions: { transactions: [] } } } };
