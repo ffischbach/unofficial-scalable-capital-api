@@ -39,10 +39,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: anthropics/claude-code-action@88c168b39e7e64da0286d812b6e9fbebb6708185 # v1
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: --model claude-sonnet-4-6 --max-turns 15
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: --model claude-sonnet-4-6 --max-turns 15 --dangerously-skip-permissions
+          classify_inline_comments: true
+          show_full_output: true
           prompt: |
             Review this pull request thoroughly. Focus on:
             - Correctness and logic errors
