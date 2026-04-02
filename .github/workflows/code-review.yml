@@ -47,6 +47,7 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           claude_args: --model claude-sonnet-4-6 --max-turns 30
+          use_sticky_comment: true
           classify_inline_comments: true
           show_full_output: true
           prompt: |
