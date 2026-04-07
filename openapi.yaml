@@ -1028,6 +1028,107 @@ paths:
               schema:
                 $ref: '#/components/schemas/GraphQLErrors'
 
+  /transactions/{id}:
+    get:
+      summary: Transaction details
+      operationId: getTransactionDetails
+      description: |
+        Returns full details for a single broker transaction by its ID.
+        The shape of the response varies by transaction type (`BrokerSecurityTransaction`,
+        `BrokerCashTransaction`, `BrokerNonTradeSecurityTransaction`, `BrokerEltifTransaction`).
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Transaction ID as returned by the list endpoint.
+          example: eaRxyCqrq3qSWd697eV7Xh
+      responses:
+        '200':
+          description: Transaction detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  account:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      brokerPortfolio:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          transactionDetails:
+                            type: object
+                            description: Transaction detail; shape depends on the concrete type.
+                            properties:
+                              id:
+                                type: string
+                              currency:
+                                type: string
+                              type:
+                                type: string
+                                enum: [SECURITY_TRANSACTION, CASH_TRANSACTION, NON_TRADE_SECURITY_TRANSACTION, ELTIF_TRANSACTION]
+                              lastEventDateTime:
+                                type: string
+                                format: date-time
+                              isPending:
+                                type: boolean
+                              isCancellation:
+                                type: boolean
+                              transactionReference:
+                                type: string
+                              documents:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: string
+                                    url:
+                                      type: string
+                                    label:
+                                      type: string
+                              security:
+                                type: object
+                                properties:
+                                  id:
+                                    type: string
+                                  name:
+                                    type: string
+                                  isin:
+                                    type: string
+        '400':
+          description: Invalid transaction id format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream GraphQL errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphQLErrors'
+
   /securities/{isin}:
     get:
       summary: Full security details
