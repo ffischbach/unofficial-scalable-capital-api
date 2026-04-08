@@ -244,13 +244,25 @@ describe('GET /documents/:id — document download', () => {
     expect(body).toHaveProperty('error');
   });
 
-  it('returns the upstream status when it is not ok', async () => {
+  it('returns 502 when upstream is not ok', async () => {
     upstreamFetch.mockResolvedValue(new Response(null, { status: 404 }));
 
-    const res = await fetch(`${ctx.baseUrl}/documents/missing-doc-id`);
+    const res = await fetch(`${ctx.baseUrl}/documents/nonexistent-doc`);
     const body = await res.json();
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(502);
+    expect(body).toHaveProperty('error');
+  });
+
+  it.each([
+    ['date=2026-03-26', 'only date'],
+    ['date=2026-03-26&label=Kosteninformation', 'date and label'],
+    ['label=Kosteninformation&isin=IE00B3RBWM25', 'label and isin'],
+  ])('returns 400 when partial params are provided (%s)', async (qs) => {
+    const res = await fetch(`${ctx.baseUrl}/documents/iRRfCi1iMGpLu2aZQKnKfY?${qs}`);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
     expect(body).toHaveProperty('error');
   });
 });

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireSession } from '../middleware/requireSession.ts';
 import { getSession } from '../../auth/session.ts';
-import { graphqlRequest, buildCookieHeader, FETCH_TIMEOUT_MS } from '../../scalable/client.ts';
+import { graphqlRequest, buildCookieHeader, FETCH_TIMEOUT_MS, USER_AGENT } from '../../scalable/client.ts';
 import { MORE_TRANSACTIONS, TRANSACTION_DETAILS } from '../../scalable/operations/transactions.ts';
 import { ISIN_RE } from './validate.ts';
 
@@ -83,7 +83,7 @@ router.get('/:id', requireSession, async (req, res) => {
 });
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const LABEL_RE = /^[A-Za-z0-9 _-]{1,100}$/;
+const LABEL_RE = /^[A-Za-z0-9_-]{1,100}$/;
 
 // GET /transactions/documents/:id — proxy-download a transaction document PDF
 // Optional query params to construct the download path: date, label, isin
@@ -137,6 +137,7 @@ router.get('/documents/:id', requireSession, async (req, res) => {
         Cookie: cookieHeader,
         Referer: `https://de.scalable.capital/broker/transactions?portfolioId=${session.portfolioId}`,
         Origin: 'https://de.scalable.capital',
+        'User-Agent': USER_AGENT,
       },
       signal: controller.signal,
     });
@@ -145,7 +146,7 @@ router.get('/documents/:id', requireSession, async (req, res) => {
   }
 
   if (!upstream.ok) {
-    res.status(upstream.status).json({ error: `Upstream returned ${upstream.status}` });
+    res.status(502).json({ error: `Upstream returned ${upstream.status}` });
     return;
   }
 
