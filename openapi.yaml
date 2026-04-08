@@ -1129,6 +1129,81 @@ paths:
               schema:
                 $ref: '#/components/schemas/GraphQLErrors'
 
+  /transactions/documents/{id}:
+    get:
+      summary: Download transaction document
+      operationId: downloadTransactionDocument
+      description: |
+        Proxy-downloads a transaction document PDF from Scalable Capital's download API.
+        The `id` is the document ID from the `documents` array in the transaction details response.
+
+        To get the correct file, also pass the three optional query parameters that the server uses
+        to build Scalable's internal download path:
+        - `date` — date portion of `lastEventDateTime` (e.g. `2026-03-26`)
+        - `label` — document label from the `documents` array (e.g. `Kosteninformation`)
+        - `isin` — ISIN from `security.isin` (e.g. `IE00B3RBWM25`)
+
+        All three must be supplied together or omitted together. If omitted, the document ID is
+        used as the path segment (may work for some documents).
+      security:
+        - GatewayToken: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Document ID from the transaction details `documents[].id` field.
+          example: iRRfCi1iMGpLu2aZQKnKfY
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2}$'
+          description: Date portion of `lastEventDateTime` from the transaction details.
+          example: '2026-03-26'
+        - name: label
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Document label from the transaction details `documents[].label` field.
+          example: Kosteninformation
+        - name: isin
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ISIN from the transaction details `security.isin` field.
+          example: IE00B3RBWM25
+      responses:
+        '200':
+          description: PDF document binary
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid id, or invalid/incomplete date+label+isin combination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream returned a non-2xx status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /securities/{isin}:
     get:
       summary: Full security details

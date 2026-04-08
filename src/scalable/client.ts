@@ -46,7 +46,7 @@ export function buildHeaders(portfolioId: string, cookieHeader: string): Record<
   };
 }
 
-const FETCH_TIMEOUT_MS = 30_000;
+export const FETCH_TIMEOUT_MS = 30_000;
 
 async function executeRequest<T>(
   body: GraphQLRequest,
