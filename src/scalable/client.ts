@@ -21,7 +21,7 @@ export async function ensureLogin(): Promise<void> {
   await loginInProgress;
 }
 
-const USER_AGENT =
+export const USER_AGENT =
   'unofficial-sc-api/0.1.0 (https://github.com/ffischbach/unofficial-scalable-capital-api)';
 
 export class AuthenticationError extends Error {
@@ -46,7 +46,7 @@ export function buildHeaders(portfolioId: string, cookieHeader: string): Record<
   };
 }
 
-const FETCH_TIMEOUT_MS = 30_000;
+export const FETCH_TIMEOUT_MS = 30_000;
 
 async function executeRequest<T>(
   body: GraphQLRequest,
