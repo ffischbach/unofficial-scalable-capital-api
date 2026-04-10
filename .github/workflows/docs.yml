@@ -2,7 +2,7 @@ name: Deploy API Docs
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     paths:
       - openapi.yaml
       - scripts/build-docs.ts
