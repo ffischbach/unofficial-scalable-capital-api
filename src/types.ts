@@ -36,4 +36,5 @@ export interface GraphQLResponse<T = unknown> {
 export interface GatewayConfig {
   port: number;
   token?: string;
+  browserProfileDir?: string;
 }

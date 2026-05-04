@@ -8,3 +8,4 @@ session.json
 api-changes.json
 *.tmp
 docs/
+.browser-profile/

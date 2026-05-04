@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { loadSessionFromDisk } from './auth/session.ts';
+import { configureBrowserProfile } from './auth/puppeteer-login.ts';
 import { createApp } from './server/app.ts';
 import { setMonitorEnabled } from './scalable/apiMonitor.ts';
 import type { GatewayConfig } from './types.ts';
@@ -9,20 +10,23 @@ const { values } = parseArgs({
     port: { type: 'string', default: '3141' },
     token: { type: 'string' },
     monitor: { type: 'boolean', default: false },
+    'browser-profile': { type: 'string' },
   },
 });
 
 const port = parseInt(values.port as string, 10);
 const token = values.token as string | undefined;
 const monitor = values.monitor as boolean;
+const browserProfileDir = values['browser-profile'] as string | undefined;
 
 if (isNaN(port) || port < 1 || port > 65535) {
   console.error(`Invalid port: ${values.port}`);
   process.exit(1);
 }
 
-const config: GatewayConfig = { port, token };
+const config: GatewayConfig = { port, token, browserProfileDir };
 
+configureBrowserProfile(browserProfileDir);
 setMonitorEnabled(monitor);
 
 // Load persisted session before starting server (valid in ESM + Node 22+)
@@ -42,6 +46,10 @@ const server = app.listen(port, '127.0.0.1', () => {
   console.log('');
   if (token) {
     console.log(`  Gateway token protection enabled (X-Gateway-Token header required)`);
+    console.log('');
+  }
+  if (browserProfileDir) {
+    console.log(`  Browser profile: ${browserProfileDir} (persistent login enabled)`);
     console.log('');
   }
   if (monitor) {
