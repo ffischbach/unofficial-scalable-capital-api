@@ -35,11 +35,12 @@ The server listens on `http://127.0.0.1:3141` (loopback only).
 
 ### CLI Options
 
-| Flag        | Default | Description                                               |
-|-------------|---------|-----------------------------------------------------------|
-| `--port`    | `3141`  | Port to listen on                                         |
-| `--token`   | (none)  | Require `X-Gateway-Token` header on all non-auth requests |
-| `--monitor` | off     | Enable API change detection (writes to `api-changes.json`) |
+| Flag               | Default | Description                                               |
+|--------------------|---------|-----------------------------------------------------------|
+| `--port`           | `3141`  | Port to listen on                                         |
+| `--token`          | (none)  | Require `X-Gateway-Token` header on all non-auth requests |
+| `--monitor`        | off     | Enable API change detection (writes to `api-changes.json`) |
+| `--browser-profile`| (none)  | Path to a Puppeteer user data directory for persistent login (skips 2FA when the browser session is still valid) |
 
 ## Authentication
 
@@ -48,6 +49,18 @@ The server listens on `http://127.0.0.1:3141` (loopback only).
 3. The session is saved to `session.json` and reused on restart (valid for 8 hours)
 
 `session.json` contains authentication cookies with full account access. It is written with mode `0600` (owner read/write only) and excluded from git. Never share or commit it.
+
+### Persistent browser profile (skip 2FA on re-login)
+
+Pass `--browser-profile <dir>` to store the browser's cookies and state on disk:
+
+```bash
+npm run dev -- --browser-profile .browser-profile
+```
+
+On the next `POST /auth/login`, Puppeteer navigates directly to the cockpit. If the browser session is still valid, login and 2FA are skipped entirely. If it has expired, the normal interactive flow runs and the refreshed session is saved back to the profile.
+
+The profile directory is gitignored by default (`.browser-profile/`).
 
 ## API Reference
 
