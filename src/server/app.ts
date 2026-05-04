@@ -15,6 +15,22 @@ import type { GatewayConfig } from '../types.ts';
 export function createApp(config: GatewayConfig): express.Application {
   const app = express();
 
+  // CORS — allow any localhost/127.0.0.1 origin (local frontend dev)
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin ?? '';
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Gateway-Token');
+    }
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
+
   // Body parsing
   app.use(express.json({ limit: '10mb' }));
 
