@@ -28,7 +28,7 @@ export async function extractAccountIds(
       if (m?.[1]) portfolioId = m[1];
     }
     if (!savingsId) {
-      const m = href.match(/\/interest\/([^/?]+)/);
+      const m = href.match(/\/interest\/overnight\/([^/?]+)/);
       if (m?.[1]) savingsId = m[1];
     }
     if (portfolioId && savingsId) break;

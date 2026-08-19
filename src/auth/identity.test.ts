@@ -79,7 +79,7 @@ describe('extractAccountIds', () => {
   it('extracts both portfolioId and savingsId', async () => {
     const page = makePage([], [
       '/cockpit?portfolioId=port-99&foo=bar',
-      '/interest/sav-77/overview',
+      '/interest/overnight/sav-77',
     ]);
     await expect(extractAccountIds(page as never)).resolves.toEqual({
       portfolioId: 'port-99',
@@ -90,7 +90,7 @@ describe('extractAccountIds', () => {
   it('extracts portfolioId from a URL with multiple query params', async () => {
     const page = makePage([], [
       '/cockpit?foo=1&portfolioId=port-abc&bar=2',
-      '/interest/sav-xyz/',
+      '/interest/overnight/sav-xyz',
     ]);
     const result = await extractAccountIds(page as never);
     expect(result.portfolioId).toBe('port-abc');
@@ -125,9 +125,9 @@ describe('extractAccountIds', () => {
   it('stops scanning once both ids are found', async () => {
     // First href contains both; second href has different ids that must be ignored
     const page = makePage([], [
-      '/cockpit?portfolioId=port-first&x=/interest/sav-first/ov',
+      '/cockpit?portfolioId=port-first&x=/interest/overnight/sav-first',
       '/cockpit?portfolioId=port-second',
-      '/interest/sav-second/overview',
+      '/interest/overnight/sav-second',
     ]);
     const result = await extractAccountIds(page as never);
     expect(result.portfolioId).toBe('port-first');
@@ -139,9 +139,9 @@ describe('extractAccountIds', () => {
   it('picks the first occurrence of each id across separate hrefs', async () => {
     const page = makePage([], [
       '/cockpit?portfolioId=port-1',
-      '/interest/sav-1/overview',
+      '/interest/overnight/sav-1',
       '/cockpit?portfolioId=port-2',
-      '/interest/sav-2/overview',
+      '/interest/overnight/sav-2',
     ]);
     const result = await extractAccountIds(page as never);
     expect(result.portfolioId).toBe('port-1');
