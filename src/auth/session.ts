@@ -52,11 +52,11 @@ export async function loadSessionFromDisk(): Promise<void> {
       return;
     }
     const session: Session = parsed.data;
+    currentSession = session;
     if (!isSessionValid(session)) {
-      console.log('[session] Found session.json but it has expired — ignoring.');
+      console.log('[session] Found session.json but it has expired — keeping it for a silent-refresh attempt.');
       return;
     }
-    currentSession = session;
     const expiresIn = Math.round((session.expiresAt - Date.now()) / 1000 / 60);
     console.log(`[session] Restored session from disk (expires in ~${expiresIn} minutes).`);
     if (expiresIn < 30) {

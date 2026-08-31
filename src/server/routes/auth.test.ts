@@ -5,20 +5,30 @@ vi.mock('../../auth/session.ts', () => ({
   getSession: vi.fn(),
   isSessionValid: vi.fn(),
   clearSession: vi.fn(),
+  setSession: vi.fn(),
+  persistSession: vi.fn(),
 }));
 
 vi.mock('../../auth/puppeteer-login.ts', () => ({
   runPuppeteerLogin: vi.fn(),
 }));
 
-import { getSession, isSessionValid, clearSession } from '../../auth/session.ts';
+vi.mock('../../auth/silent-refresh.ts', () => ({
+  attemptSilentRefresh: vi.fn(),
+}));
+
+import { getSession, isSessionValid, clearSession, setSession, persistSession } from '../../auth/session.ts';
 import { runPuppeteerLogin } from '../../auth/puppeteer-login.ts';
+import { attemptSilentRefresh } from '../../auth/silent-refresh.ts';
 import router from './auth.ts';
 
 const mockGetSession = vi.mocked(getSession);
 const mockIsSessionValid = vi.mocked(isSessionValid);
 const mockClearSession = vi.mocked(clearSession);
 const mockRunPuppeteerLogin = vi.mocked(runPuppeteerLogin);
+const mockSetSession = vi.mocked(setSession);
+const mockPersistSession = vi.mocked(persistSession);
+const mockAttemptSilentRefresh = vi.mocked(attemptSilentRefresh);
 
 const ctx = setupRouteTest(router);
 
@@ -73,6 +83,52 @@ describe('POST /login', () => {
     expect(res.status).toBe(200);
     expect(mockRunPuppeteerLogin).toHaveBeenCalledOnce();
     expect(body.message).toMatch(/login successful/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /refresh
+// ---------------------------------------------------------------------------
+
+describe('POST /refresh', () => {
+  it('returns 400 when there is no session', async () => {
+    mockGetSession.mockReturnValue(null);
+
+    const res = await fetch(`${ctx.baseUrl}/refresh`, { method: 'POST' });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/no session/i);
+    expect(mockAttemptSilentRefresh).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when silent refresh fails', async () => {
+    mockGetSession.mockReturnValue(makeMockSession());
+    mockAttemptSilentRefresh.mockResolvedValue(null);
+
+    const res = await fetch(`${ctx.baseUrl}/refresh`, { method: 'POST' });
+    const body = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(body.error).toMatch(/silent refresh failed/i);
+    expect(mockSetSession).not.toHaveBeenCalled();
+  });
+
+  it('persists and returns the refreshed session on success', async () => {
+    const existing = makeMockSession();
+    const refreshed = makeMockSession({ expiresAt: Date.now() + 999_999 });
+    mockGetSession.mockReturnValue(existing);
+    mockAttemptSilentRefresh.mockResolvedValue(refreshed);
+    mockPersistSession.mockResolvedValue(undefined);
+
+    const res = await fetch(`${ctx.baseUrl}/refresh`, { method: 'POST' });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(mockSetSession).toHaveBeenCalledWith(refreshed);
+    expect(mockPersistSession).toHaveBeenCalledWith(refreshed);
+    expect(body.message).toMatch(/refreshed/i);
+    expect(body.expiresAt).toBe(refreshed.expiresAt);
   });
 });
 

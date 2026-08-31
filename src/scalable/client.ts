@@ -1,5 +1,6 @@
-import { getSession, isSessionValid } from '../auth/session.ts';
+import { getSession, isSessionValid, setSession, persistSession } from '../auth/session.ts';
 import { runPuppeteerLogin } from '../auth/puppeteer-login.ts';
+import { attemptSilentRefresh } from '../auth/silent-refresh.ts';
 import type { Cookie, GraphQLRequest, GraphQLResponse } from '../types.ts';
 import { checkResponseShape } from './apiMonitor.ts';
 
@@ -7,12 +8,25 @@ const GRAPHQL_URL = 'https://de.scalable.capital/broker/api/data';
 
 let loginInProgress: Promise<void> | null = null;
 
+async function loginOrRefresh(): Promise<void> {
+  const existing = getSession();
+  if (existing) {
+    const refreshed = await attemptSilentRefresh(existing);
+    if (refreshed) {
+      setSession(refreshed);
+      await persistSession(refreshed);
+      return;
+    }
+  }
+  await runPuppeteerLogin();
+}
+
 export async function ensureLogin(): Promise<void> {
   if (loginInProgress) {
     await loginInProgress;
     return;
   }
-  loginInProgress = runPuppeteerLogin().then(() => {
+  loginInProgress = loginOrRefresh().then(() => {
     loginInProgress = null;
   }, (err) => {
     loginInProgress = null;

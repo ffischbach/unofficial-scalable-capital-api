@@ -121,11 +121,12 @@ describe('loadSessionFromDisk', () => {
     expect(getSession()).toMatchObject({ personId: 'person1', portfolioId: 'port1' });
   });
 
-  it('does not set currentSession when the session is expired', async () => {
+  it('keeps an expired session loaded for a silent-refresh attempt', async () => {
     const expired = { ...makeValidSession(), expiresAt: Date.now() - 1 };
     vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(expired) as never);
     await loadSessionFromDisk();
-    expect(getSession()).toBeNull();
+    expect(getSession()).toMatchObject({ personId: 'person1', portfolioId: 'port1' });
+    expect(isSessionValid(getSession()!)).toBe(false);
   });
 
   it('does not set currentSession when Zod validation fails', async () => {

@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { getSession, isSessionValid, clearSession } from '../../auth/session.ts';
+import { getSession, isSessionValid, clearSession, setSession, persistSession } from '../../auth/session.ts';
 import { runPuppeteerLogin } from '../../auth/puppeteer-login.ts';
+import { attemptSilentRefresh } from '../../auth/silent-refresh.ts';
 
 const router = Router();
 
@@ -27,6 +28,25 @@ router.post('/login', async (_req, res) => {
     savingsId: session.savingsId,
     expiresAt: session.expiresAt,
   });
+});
+
+// POST /auth/refresh — attempts a silent (headless) session refresh
+router.post('/refresh', async (_req, res) => {
+  const existing = getSession();
+  if (!existing) {
+    res.status(400).json({ error: 'No session to refresh.' });
+    return;
+  }
+
+  const refreshed = await attemptSilentRefresh(existing);
+  if (!refreshed) {
+    res.status(401).json({ error: 'Silent refresh failed — interactive /auth/login required.' });
+    return;
+  }
+
+  setSession(refreshed);
+  await persistSession(refreshed);
+  res.json({ message: 'Session refreshed.', expiresAt: refreshed.expiresAt });
 });
 
 // GET /auth/status — returns current authentication state
