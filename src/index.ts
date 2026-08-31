@@ -1,6 +1,7 @@
 import { parseArgs } from 'node:util';
 import { loadSessionFromDisk } from './auth/session.ts';
 import { configureBrowserProfile } from './auth/puppeteer-login.ts';
+import { startAutoRefresh } from './auth/auto-refresh.ts';
 import { createApp } from './server/app.ts';
 import { setMonitorEnabled } from './scalable/apiMonitor.ts';
 import type { GatewayConfig } from './types.ts';
@@ -31,6 +32,8 @@ setMonitorEnabled(monitor);
 
 // Load persisted session before starting server (valid in ESM + Node 22+)
 await loadSessionFromDisk();
+
+const autoRefreshTimer = startAutoRefresh();
 
 const app = createApp(config);
 
@@ -70,6 +73,7 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 
 function shutdown(signal: string): void {
   console.log(`\n[server] Received ${signal}. Shutting down gracefully...`);
+  clearInterval(autoRefreshTimer);
   server.close(() => {
     console.log('[server] Server closed.');
     process.exit(0);

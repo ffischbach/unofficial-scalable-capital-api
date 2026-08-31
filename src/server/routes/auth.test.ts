@@ -11,14 +11,20 @@ vi.mock('../../auth/puppeteer-login.ts', () => ({
   runPuppeteerLogin: vi.fn(),
 }));
 
+vi.mock('../../scalable/client.ts', () => ({
+  ensureSilentRefresh: vi.fn(),
+}));
+
 import { getSession, isSessionValid, clearSession } from '../../auth/session.ts';
 import { runPuppeteerLogin } from '../../auth/puppeteer-login.ts';
+import { ensureSilentRefresh } from '../../scalable/client.ts';
 import router from './auth.ts';
 
 const mockGetSession = vi.mocked(getSession);
 const mockIsSessionValid = vi.mocked(isSessionValid);
 const mockClearSession = vi.mocked(clearSession);
 const mockRunPuppeteerLogin = vi.mocked(runPuppeteerLogin);
+const mockEnsureSilentRefresh = vi.mocked(ensureSilentRefresh);
 
 const ctx = setupRouteTest(router);
 
@@ -73,6 +79,49 @@ describe('POST /login', () => {
     expect(res.status).toBe(200);
     expect(mockRunPuppeteerLogin).toHaveBeenCalledOnce();
     expect(body.message).toMatch(/login successful/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /refresh
+// ---------------------------------------------------------------------------
+
+describe('POST /refresh', () => {
+  it('returns 400 when there is no session', async () => {
+    mockGetSession.mockReturnValue(null);
+
+    const res = await fetch(`${ctx.baseUrl}/refresh`, { method: 'POST' });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/no session/i);
+    expect(mockEnsureSilentRefresh).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 when silent refresh fails', async () => {
+    mockGetSession.mockReturnValue(makeMockSession());
+    mockEnsureSilentRefresh.mockResolvedValue(false);
+
+    const res = await fetch(`${ctx.baseUrl}/refresh`, { method: 'POST' });
+    const body = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(body.error).toMatch(/silent refresh failed/i);
+  });
+
+  it('returns the refreshed session on success', async () => {
+    const existing = makeMockSession();
+    const refreshed = makeMockSession({ expiresAt: Date.now() + 999_999 });
+    mockGetSession.mockReturnValueOnce(existing).mockReturnValueOnce(refreshed);
+    mockEnsureSilentRefresh.mockResolvedValue(true);
+
+    const res = await fetch(`${ctx.baseUrl}/refresh`, { method: 'POST' });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(mockEnsureSilentRefresh).toHaveBeenCalledOnce();
+    expect(body.message).toMatch(/refreshed/i);
+    expect(body.expiresAt).toBe(refreshed.expiresAt);
   });
 });
 

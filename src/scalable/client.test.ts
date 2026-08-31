@@ -3,9 +3,16 @@ import { buildCookieHeader, buildHeaders, AuthenticationError, graphqlRequest } 
 import type { Cookie, Session, GraphQLRequest } from '../types.ts';
 import { getSession, isSessionValid } from '../auth/session.ts';
 import { runPuppeteerLogin } from '../auth/puppeteer-login.ts';
+import { attemptSilentRefresh } from '../auth/silent-refresh.ts';
 
 vi.mock('../auth/puppeteer-login.ts', () => ({ runPuppeteerLogin: vi.fn() }));
-vi.mock('../auth/session.ts', () => ({ getSession: vi.fn(), isSessionValid: vi.fn() }));
+vi.mock('../auth/silent-refresh.ts', () => ({ attemptSilentRefresh: vi.fn() }));
+vi.mock('../auth/session.ts', () => ({
+  getSession: vi.fn(),
+  isSessionValid: vi.fn(),
+  setSession: vi.fn(),
+  persistSession: vi.fn(),
+}));
 vi.mock('./apiMonitor.ts', () => ({ checkResponseShape: vi.fn() }));
 
 function makeCookie(name: string, value: string): Cookie {
@@ -227,6 +234,44 @@ describe('graphqlRequest — auto-retry', () => {
     await expect(graphqlRequest(body)).rejects.toMatchObject({ status: 500 });
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(runPuppeteerLogin).not.toHaveBeenCalled();
+  });
+});
+
+describe('graphqlRequest — silent refresh', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getSession).mockReturnValue(baseSession);
+    vi.mocked(isSessionValid).mockReturnValue(true);
+  });
+
+  it('uses silent refresh instead of interactive login on 401 when it succeeds', async () => {
+    const refreshedSession: Session = { ...baseSession, expiresAt: Date.now() + 999_999 };
+    vi.mocked(attemptSilentRefresh).mockResolvedValue(refreshedSession);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockReturnValueOnce(errFetch(401)).mockReturnValue(okFetch({ ok: true })),
+    );
+
+    const result = await graphqlRequest(body);
+
+    expect(attemptSilentRefresh).toHaveBeenCalledTimes(1);
+    expect(runPuppeteerLogin).not.toHaveBeenCalled();
+    expect(result).toEqual({ data: { ok: true } });
+  });
+
+  it('falls back to interactive login when silent refresh fails', async () => {
+    vi.mocked(attemptSilentRefresh).mockResolvedValue(null);
+    vi.mocked(runPuppeteerLogin).mockResolvedValue(undefined as unknown as Session);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockReturnValueOnce(errFetch(401)).mockReturnValue(okFetch({ ok: true })),
+    );
+
+    const result = await graphqlRequest(body);
+
+    expect(attemptSilentRefresh).toHaveBeenCalledTimes(1);
+    expect(runPuppeteerLogin).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ data: { ok: true } });
   });
 });
 
