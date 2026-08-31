@@ -1,4 +1,4 @@
-import puppeteer, { type CookieParam } from 'puppeteer';
+import puppeteer, { type Browser, type CookieParam } from 'puppeteer';
 import { extractPersonIdFromCookies, extractAccountIds, extractCookies } from './identity.ts';
 import { createSession } from './session.ts';
 import type { Cookie, Session } from '../types.ts';
@@ -20,9 +20,10 @@ function toCookieParam(cookie: Cookie): CookieParam {
 
 export async function attemptSilentRefresh(session: Session): Promise<Session | null> {
   console.log('[silent-refresh] Attempting silent session refresh...');
-  const browser = await puppeteer.launch({ headless: true });
+  let browser: Browser | undefined;
 
   try {
+    browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     await page.setCookie(...session.cookies.map(toCookieParam));
 
@@ -46,6 +47,10 @@ export async function attemptSilentRefresh(session: Session): Promise<Session | 
     console.warn('[silent-refresh] Silent refresh failed:', err);
     return null;
   } finally {
-    await browser.close();
+    try {
+      await browser?.close();
+    } catch (err) {
+      console.warn('[silent-refresh] Failed to close headless browser:', err);
+    }
   }
 }

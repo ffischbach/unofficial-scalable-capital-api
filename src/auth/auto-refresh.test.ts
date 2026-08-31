@@ -3,13 +3,11 @@ import type { Session } from '../types.ts';
 
 vi.mock('./session.ts', () => ({
   getSession: vi.fn(),
-  setSession: vi.fn(),
-  persistSession: vi.fn(),
 }));
-vi.mock('./silent-refresh.ts', () => ({ attemptSilentRefresh: vi.fn() }));
+vi.mock('../scalable/client.ts', () => ({ ensureSilentRefresh: vi.fn() }));
 
-import { getSession, setSession, persistSession } from './session.ts';
-import { attemptSilentRefresh } from './silent-refresh.ts';
+import { getSession } from './session.ts';
+import { ensureSilentRefresh } from '../scalable/client.ts';
 import { startAutoRefresh } from './auto-refresh.ts';
 
 function makeSession(overrides: Partial<Session> = {}): Session {
@@ -40,7 +38,7 @@ describe('startAutoRefresh', () => {
     startAutoRefresh();
     await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
 
-    expect(attemptSilentRefresh).not.toHaveBeenCalled();
+    expect(ensureSilentRefresh).not.toHaveBeenCalled();
   });
 
   it('does not refresh when session has more than 2h left', async () => {
@@ -49,32 +47,35 @@ describe('startAutoRefresh', () => {
     startAutoRefresh();
     await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
 
-    expect(attemptSilentRefresh).not.toHaveBeenCalled();
+    expect(ensureSilentRefresh).not.toHaveBeenCalled();
   });
 
-  it('refreshes and persists when session has less than 2h left', async () => {
+  it('refreshes via ensureSilentRefresh when session has less than 2h left', async () => {
     const soon = makeSession({ expiresAt: Date.now() + 60 * 60 * 1000 });
-    const refreshed = makeSession({ expiresAt: Date.now() + 8 * 60 * 60 * 1000 });
     vi.mocked(getSession).mockReturnValue(soon);
-    vi.mocked(attemptSilentRefresh).mockResolvedValue(refreshed);
+    vi.mocked(ensureSilentRefresh).mockResolvedValue(true);
 
     startAutoRefresh();
     await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
 
-    expect(attemptSilentRefresh).toHaveBeenCalledWith(soon);
-    expect(setSession).toHaveBeenCalledWith(refreshed);
-    expect(persistSession).toHaveBeenCalledWith(refreshed);
+    expect(ensureSilentRefresh).toHaveBeenCalledOnce();
   });
 
   it('logs and does not throw when silent refresh fails', async () => {
     const soon = makeSession({ expiresAt: Date.now() + 60 * 60 * 1000 });
     vi.mocked(getSession).mockReturnValue(soon);
-    vi.mocked(attemptSilentRefresh).mockResolvedValue(null);
+    vi.mocked(ensureSilentRefresh).mockResolvedValue(false);
 
     startAutoRefresh();
-    await vi.advanceTimersByTimeAsync(30 * 60 * 1000);
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000); // must not throw / reject unhandled
+  });
 
-    expect(setSession).not.toHaveBeenCalled();
-    expect(persistSession).not.toHaveBeenCalled();
+  it('does not throw when ensureSilentRefresh rejects unexpectedly', async () => {
+    const soon = makeSession({ expiresAt: Date.now() + 60 * 60 * 1000 });
+    vi.mocked(getSession).mockReturnValue(soon);
+    vi.mocked(ensureSilentRefresh).mockRejectedValue(new Error('puppeteer launch failed'));
+
+    startAutoRefresh();
+    await vi.advanceTimersByTimeAsync(30 * 60 * 1000); // must not throw / reject unhandled
   });
 });
