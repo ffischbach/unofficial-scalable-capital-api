@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer';
 import { extractPersonIdFromCookies, extractAccountIds, extractCookies } from './identity.ts';
 import { createSession, persistSession, setSession } from './session.ts';
+import { sandboxArgs } from './puppeteerLaunchOptions.ts';
 import type { Session } from '../types.ts';
 
 let browserProfileDir: string | undefined;
@@ -14,6 +15,7 @@ export async function runPuppeteerLogin(): Promise<Session> {
   const browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
+    args: sandboxArgs(),
     ...(browserProfileDir ? { userDataDir: browserProfileDir } : {}),
   });
 

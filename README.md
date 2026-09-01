@@ -31,16 +31,17 @@ npm run dev
 npm run dev -- --port 3141 --token my-secret-token
 ```
 
-The server listens on `http://127.0.0.1:3141` (loopback only).
+The server listens on `http://127.0.0.1:3141` (loopback only) by default.
 
 ### CLI Options
 
-| Flag               | Default | Description                                               |
-|--------------------|---------|-----------------------------------------------------------|
-| `--port`           | `3141`  | Port to listen on                                         |
-| `--token`          | (none)  | Require `X-Gateway-Token` header on all non-auth requests |
-| `--monitor`        | off     | Enable API change detection (writes to `api-changes.json`) |
-| `--browser-profile`| (none)  | Path to a Puppeteer user data directory for persistent login (skips 2FA when the browser session is still valid) |
+| Flag               | Default     | Description                                               |
+|--------------------|-------------|-----------------------------------------------------------|
+| `--port`           | `3141`      | Port to listen on                                         |
+| `--host`           | `127.0.0.1` | Address to bind to. Only change this for server deployments (see [Deployment](#deployment)) — anything reachable at this address can read your portfolio data. |
+| `--token`          | (none)      | Require `X-Gateway-Token` header on all non-auth requests |
+| `--monitor`        | off         | Enable API change detection (writes to `api-changes.json`) |
+| `--browser-profile`| (none)      | Path to a Puppeteer user data directory for persistent login (skips 2FA when the browser session is still valid) |
 
 ## Authentication
 
@@ -61,6 +62,12 @@ npm run dev -- --browser-profile .browser-profile
 On the next `POST /auth/login`, Puppeteer navigates directly to the cockpit. If the browser session is still valid, login and 2FA are skipped entirely. If it has expired, the normal interactive flow runs and the refreshed session is saved back to the profile.
 
 The profile directory is gitignored by default (`.browser-profile/`).
+
+## Deployment
+
+Want to run this permanently on a homeserver or Raspberry Pi instead of
+`npm run dev`? See **[DEPLOYMENT.md](./DEPLOYMENT.md)** — Docker setup,
+remote login without copying files by hand, VPN access, and monitoring.
 
 ## API Reference
 

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import express from 'express';
 import { makeMockSession, setupRouteTest } from './test-helpers.ts';
 
 vi.mock('../../auth/session.ts', () => ({
   getSession: vi.fn(),
   isSessionValid: vi.fn(),
   clearSession: vi.fn(),
+  setSession: vi.fn(),
+  persistSession: vi.fn(),
 }));
 
 vi.mock('../../auth/puppeteer-login.ts', () => ({
@@ -15,7 +18,7 @@ vi.mock('../../scalable/client.ts', () => ({
   ensureSilentRefresh: vi.fn(),
 }));
 
-import { getSession, isSessionValid, clearSession } from '../../auth/session.ts';
+import { getSession, isSessionValid, clearSession, setSession, persistSession } from '../../auth/session.ts';
 import { runPuppeteerLogin } from '../../auth/puppeteer-login.ts';
 import { ensureSilentRefresh } from '../../scalable/client.ts';
 import router from './auth.ts';
@@ -23,10 +26,17 @@ import router from './auth.ts';
 const mockGetSession = vi.mocked(getSession);
 const mockIsSessionValid = vi.mocked(isSessionValid);
 const mockClearSession = vi.mocked(clearSession);
+const mockSetSession = vi.mocked(setSession);
+const mockPersistSession = vi.mocked(persistSession);
 const mockRunPuppeteerLogin = vi.mocked(runPuppeteerLogin);
 const mockEnsureSilentRefresh = vi.mocked(ensureSilentRefresh);
 
-const ctx = setupRouteTest(router);
+// POST /import reads req.body, so it needs the JSON body-parser middleware.
+const app = express.Router();
+app.use(express.json());
+app.use('/', router);
+
+const ctx = setupRouteTest(app);
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -122,6 +132,60 @@ describe('POST /refresh', () => {
     expect(mockEnsureSilentRefresh).toHaveBeenCalledOnce();
     expect(body.message).toMatch(/refreshed/i);
     expect(body.expiresAt).toBe(refreshed.expiresAt);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /import
+// ---------------------------------------------------------------------------
+
+describe('POST /import', () => {
+  it('returns 400 for a payload that fails schema validation', async () => {
+    const res = await fetch(`${ctx.baseUrl}/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ not: 'a session' }),
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/invalid session/i);
+    expect(mockSetSession).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for an already-expired session', async () => {
+    mockIsSessionValid.mockReturnValue(false);
+    const session = makeMockSession({ expiresAt: Date.now() - 1 });
+
+    const res = await fetch(`${ctx.baseUrl}/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(session),
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toMatch(/already expired/i);
+    expect(mockSetSession).not.toHaveBeenCalled();
+  });
+
+  it('sets and persists a valid session', async () => {
+    mockIsSessionValid.mockReturnValue(true);
+    const session = makeMockSession({ savingsId: 'sav-99' });
+
+    const res = await fetch(`${ctx.baseUrl}/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(session),
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(mockSetSession).toHaveBeenCalledWith(session);
+    expect(mockPersistSession).toHaveBeenCalledWith(session);
+    expect(body.message).toMatch(/imported/i);
+    expect(body.personId).toBe(session.personId);
+    expect(body.savingsId).toBe(session.savingsId);
   });
 });
 

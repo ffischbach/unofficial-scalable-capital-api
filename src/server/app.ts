@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { errorHandler } from './middleware/errorHandler.ts';
+import { getSession, isSessionValid } from '../auth/session.ts';
 import authRouter from './routes/auth.ts';
 import proxyRouter from './routes/proxy.ts';
 import valuationRouter from './routes/valuation.ts';
@@ -34,14 +35,18 @@ export function createApp(config: GatewayConfig): express.Application {
   // Body parsing
   app.use(express.json({ limit: '10mb' }));
 
-  // Optional gateway token middleware (exempts /auth and /docs routes)
+  // Optional gateway token middleware (exempts /auth, /docs, and /health
+  // routes — except /auth/import, which injects a fully authenticated
+  // session and must stay behind the token even when the rest of /auth
+  // doesn't need it)
   if (config.token) {
     const token = config.token;
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (
-        req.path.startsWith('/auth') ||
+        (req.path.startsWith('/auth') && req.path !== '/auth/import') ||
         req.path.startsWith('/docs') ||
-        req.path === '/openapi.json'
+        req.path === '/openapi.json' ||
+        req.path === '/health'
       ) {
         next();
         return;
@@ -55,9 +60,16 @@ export function createApp(config: GatewayConfig): express.Application {
     });
   }
 
-  // Health check — no auth required
+  // Health check — no auth required. Also reports session freshness so a
+  // single curl can double as a "is the silent-refresh still working" check.
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok' });
+    const session = getSession();
+    const authenticated = !!session && isSessionValid(session);
+    res.json({
+      status: 'ok',
+      authenticated,
+      expiresAt: authenticated ? session!.expiresAt : null,
+    });
   });
 
   // API docs
