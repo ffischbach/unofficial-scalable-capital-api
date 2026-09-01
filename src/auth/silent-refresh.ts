@@ -1,6 +1,7 @@
 import puppeteer, { type Browser, type CookieParam } from 'puppeteer';
 import { extractPersonIdFromCookies, extractAccountIds, extractCookies } from './identity.ts';
 import { createSession } from './session.ts';
+import { sandboxArgs } from './puppeteerLaunchOptions.ts';
 import type { Cookie, Session } from '../types.ts';
 
 const SILENT_REFRESH_TIMEOUT_MS = 30_000;
@@ -23,7 +24,7 @@ export async function attemptSilentRefresh(session: Session): Promise<Session | 
   let browser: Browser | undefined;
 
   try {
-    browser = await puppeteer.launch({ headless: true });
+    browser = await puppeteer.launch({ headless: true, args: sandboxArgs() });
     const page = await browser.newPage();
     await page.setCookie(...session.cookies.map(toCookieParam));
 

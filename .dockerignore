@@ -1,0 +1,9 @@
+node_modules
+.git
+session.json
+data/
+api-changes.json
+api-snapshot.json
+.env
+.browser-profile
+.DS_Store

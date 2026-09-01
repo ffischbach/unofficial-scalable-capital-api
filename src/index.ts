@@ -9,6 +9,7 @@ import type { GatewayConfig } from './types.ts';
 const { values } = parseArgs({
   options: {
     port: { type: 'string', default: '3141' },
+    host: { type: 'string', default: '127.0.0.1' },
     token: { type: 'string' },
     monitor: { type: 'boolean', default: false },
     'browser-profile': { type: 'string' },
@@ -16,6 +17,7 @@ const { values } = parseArgs({
 });
 
 const port = parseInt(values.port as string, 10);
+const host = values.host as string;
 const token = values.token as string | undefined;
 const monitor = values.monitor as boolean;
 const browserProfileDir = values['browser-profile'] as string | undefined;
@@ -25,7 +27,13 @@ if (isNaN(port) || port < 1 || port > 65535) {
   process.exit(1);
 }
 
-const config: GatewayConfig = { port, token, browserProfileDir };
+if (host !== '127.0.0.1' && host !== 'localhost' && !token) {
+  console.warn(
+    `[server] Warning: binding to ${host} without --token. Anyone who can reach this address can read your portfolio data. Pass --token to protect it.`,
+  );
+}
+
+const config: GatewayConfig = { port, host, token, browserProfileDir };
 
 configureBrowserProfile(browserProfileDir);
 setMonitorEnabled(monitor);
@@ -37,14 +45,14 @@ const autoRefreshTimer = startAutoRefresh();
 
 const app = createApp(config);
 
-const server = app.listen(port, '127.0.0.1', () => {
+const server = app.listen(port, host, () => {
   console.log('');
   console.log('╔══════════════════════════════════════════════════╗');
   console.log('║  Unofficial Scalable Capital API Gateway         ║');
   console.log('╠══════════════════════════════════════════════════╣');
-  console.log(`║  Listening on http://127.0.0.1:${port}              ║`);
+  console.log(`║  Listening on http://${host}:${port}`);
   console.log('╠══════════════════════════════════════════════════╣');
-  console.log(`║  Endpoints: http://127.0.0.1:${port}/docs           ║`);
+  console.log(`║  Endpoints: http://${host}:${port}/docs`);
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
   if (token) {

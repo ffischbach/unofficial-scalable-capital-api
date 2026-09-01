@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { getSession, isSessionValid, clearSession } from '../../auth/session.ts';
+import { getSession, isSessionValid, clearSession, setSession, persistSession } from '../../auth/session.ts';
 import { runPuppeteerLogin } from '../../auth/puppeteer-login.ts';
 import { ensureSilentRefresh } from '../../scalable/client.ts';
+import { SessionSchema } from '../../auth/sessionSchema.ts';
 
 const router = Router();
 
@@ -57,6 +58,38 @@ router.get('/status', (_req, res) => {
   }
   res.json({
     authenticated: true,
+    personId: session.personId,
+    portfolioId: session.portfolioId,
+    savingsId: session.savingsId,
+    expiresAt: session.expiresAt,
+  });
+});
+
+// POST /auth/import — accepts a session produced by a local `npm run
+// login:remote` run, so completing 2FA never requires a display on this
+// machine. Unlike the rest of /auth/*, this is NOT exempt from the gateway
+// token check (see server/app.ts) — it lets a caller inject a fully
+// authenticated session, which is a much bigger blast radius than
+// login/logout/status/refresh.
+router.post('/import', async (req, res) => {
+  const parsed = SessionSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid session payload.', details: parsed.error.format() });
+    return;
+  }
+
+  const session = parsed.data;
+  if (!isSessionValid(session)) {
+    res.status(400).json({ error: 'Session is already expired.' });
+    return;
+  }
+
+  setSession(session);
+  await persistSession(session);
+
+  console.log('[auth] Session imported from remote login.');
+  res.json({
+    message: 'Session imported.',
     personId: session.personId,
     portfolioId: session.portfolioId,
     savingsId: session.savingsId,

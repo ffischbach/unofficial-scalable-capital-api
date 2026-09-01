@@ -2,28 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { z } from 'zod';
+import { SessionSchema } from './sessionSchema.ts';
 import type { Cookie, Session } from '../types.ts';
-
-const CookieSchema = z.object({
-  name: z.string(),
-  value: z.string(),
-  domain: z.string(),
-  path: z.string(),
-  expires: z.number(),
-  httpOnly: z.boolean(),
-  secure: z.boolean(),
-  sameSite: z.enum(['Strict', 'Lax', 'None']).optional(),
-});
-
-const SessionSchema = z.object({
-  cookies: z.array(CookieSchema),
-  personId: z.string(),
-  portfolioId: z.string(),
-  savingsId: z.string().nullable(),
-  authenticatedAt: z.number(),
-  expiresAt: z.number(),
-});
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 
@@ -31,7 +11,13 @@ const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '../../');
-const SESSION_FILE = path.join(PROJECT_ROOT, 'session.json');
+// Overridable so Docker deployments can point this at a mounted directory
+// (bind-mounting the single file would break the atomic rename below with
+// EXDEV, since the mount point and the tmp file would sit on different
+// filesystems from the container's point of view).
+const SESSION_FILE = process.env.SESSION_FILE_PATH
+  ? path.resolve(process.env.SESSION_FILE_PATH)
+  : path.join(PROJECT_ROOT, 'session.json');
 
 let currentSession: Session | null = null;
 

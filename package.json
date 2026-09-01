@@ -12,6 +12,7 @@
     "start": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "login:remote": "tsx scripts/login-remote.ts",
     "report-changes": "tsx scripts/report-changes.ts",
     "report-changes:print": "tsx scripts/report-changes.ts --print",
     "lint": "eslint src",
