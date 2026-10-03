@@ -9,3 +9,5 @@ api-changes.json
 *.tmp
 docs/
 .browser-profile/
+.DS_Store
+data/

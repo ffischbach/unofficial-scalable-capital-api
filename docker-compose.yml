@@ -1,0 +1,15 @@
+services:
+  api:
+    build: .
+    container_name: scalable-capital-api
+    restart: unless-stopped
+    ports:
+      - '3141:3141'
+    # Chromium needs more than Docker's 64 MB default /dev/shm, or it can
+    # crash under load.
+    shm_size: '1gb'
+    environment:
+      SESSION_FILE_PATH: /app/data/session.json
+    command: ['--port', '3141', '--host', '0.0.0.0', '--token', '${GATEWAY_TOKEN}']
+    volumes:
+      - ./data:/app/data
