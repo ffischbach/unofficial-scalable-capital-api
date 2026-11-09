@@ -987,13 +987,18 @@ paths:
           in: query
           schema:
             type: string
-          description: Comma-separated list of transaction types to include.
-          example: "SECURITY_TRANSACTION,CASH_TRANSACTION"
+          description: |
+            Comma-separated list of transaction types to include. Accepted values: BUY, SELL,
+            SAVINGS_PLAN, REINVESTMENT_DISTRIBUTION, DEPOSIT, WITHDRAWAL, DISTRIBUTION,
+            CASH_TRANSFER_IN, CASH_TRANSFER_OUT, FEE, INTEREST. Note: this is NOT the same as the
+            `type` field returned on each transaction (SECURITY_TRANSACTION/CASH_TRANSACTION/...) —
+            those values are rejected by the upstream API.
+          example: "BUY,SELL"
         - name: status
           in: query
           schema:
             type: string
-          description: Comma-separated list of statuses to include.
+          description: "Comma-separated list of statuses to include. Accepted values: SETTLED, CANCELLED, PENDING."
           example: "SETTLED"
       responses:
         '200':

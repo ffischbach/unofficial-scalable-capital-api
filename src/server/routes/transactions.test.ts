@@ -146,7 +146,7 @@ describe('GET / — success', () => {
     mockGraphqlRequest.mockResolvedValue({ data: {} });
 
     await fetch(
-      `${ctx.baseUrl}/?pageSize=50&cursor=abc123&isin=US0378331005&searchTerm=apple&type=BUY,SELL&status=EXECUTED`,
+      `${ctx.baseUrl}/?pageSize=50&cursor=abc123&isin=US0378331005&searchTerm=apple&type=BUY,SELL&status=SETTLED`,
     );
 
     expect(mockGraphqlRequest).toHaveBeenCalledWith(
@@ -158,7 +158,7 @@ describe('GET / — success', () => {
             isin: 'US0378331005',
             searchTerm: 'apple',
             type: ['BUY', 'SELL'],
-            status: ['EXECUTED'],
+            status: ['SETTLED'],
           },
         }),
       }),

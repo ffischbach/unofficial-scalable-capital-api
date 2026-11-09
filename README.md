@@ -121,6 +121,10 @@ Interactive docs are available at **http://127.0.0.1:3141/docs** once the server
 |--------|-----------------------|----------------------------------------------------------------------|
 | `GET`  | `/transactions`       | Transaction history — paginated (`?pageSize`, `?cursor`, `?isin`, `?type`, `?status`, `?searchTerm`) |
 
+`?type` (`BrokerTransactionTypeFilter`, comma-separated) does **not** accept the top-level `type` discriminator shown in responses (`SECURITY_TRANSACTION`/`CASH_TRANSACTION`) — those values are rejected with `Invalid value provided for enum type "BrokerTransactionTypeFilter"`. The filter instead takes the underlying transaction subtype. Confirmed accepted values: `BUY`, `SELL`, `SAVINGS_PLAN`, `REINVESTMENT_DISTRIBUTION`, `DEPOSIT`, `WITHDRAWAL`, `DISTRIBUTION`, `CASH_TRANSFER_IN`, `CASH_TRANSFER_OUT`, `FEE`, `INTEREST`.
+
+`?status` (`BrokerTransactionStatus`) accepts `SETTLED`, `CANCELLED`, `PENDING`.
+
 ### Savings (Tagesgeld)
 
 | Method | Path                    | Description                                                      |
