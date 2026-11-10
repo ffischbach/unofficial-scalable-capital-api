@@ -12,6 +12,8 @@ interface RegisteredSub {
   query: string;
   variables: Record<string, unknown>;
   onData: (data: unknown) => void;
+  /** Called when the manager gives up on this subscription so the owner can reset its state. */
+  onDropped?: () => void;
 }
 
 interface GqlTransportMessage {
@@ -35,13 +37,19 @@ class WebSocketManager {
     query: string,
     variables: Record<string, unknown>,
     onData: (data: unknown) => void,
+    onDropped?: () => void,
   ): void {
-    this.subs.set(id, { operationName, query, variables, onData });
+    this.subs.set(id, { operationName, query, variables, onData, onDropped });
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.sendSubscribe(id);
     } else if (!this.ws) {
       this.connect();
     }
+  }
+
+  /** Whether this subscription is still registered (i.e. not dropped by a failed re-auth). */
+  hasSub(id: string): boolean {
+    return this.subs.has(id);
   }
 
   removeSub(id: string): void {
@@ -61,13 +69,24 @@ class WebSocketManager {
     query: string,
     variables: Record<string, unknown>,
     onData: (data: unknown) => void,
+    onDropped?: () => void,
   ): void {
     this.send({ id: oldId, type: 'complete' });
     this.subs.delete(oldId);
-    this.subs.set(newId, { operationName, query, variables, onData });
+    this.subs.set(newId, { operationName, query, variables, onData, onDropped });
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.sendSubscribe(newId);
     }
+  }
+
+  /**
+   * Forgets every subscription and tells each owner it is gone, so the next
+   * subscriber re-registers instead of silently attaching to a dead id.
+   */
+  private dropAllSubs(): void {
+    const dropped = [...this.subs.values()];
+    this.subs.clear();
+    for (const sub of dropped) sub.onDropped?.();
   }
 
   private connect(): void {
@@ -80,23 +99,35 @@ class WebSocketManager {
     const cookieHeader = session.cookies.map((c) => `${c.name}=${c.value}`).join('; ');
     console.log('[wsManager] Connecting to Scalable WebSocket...');
 
-    this.ws = new WebSocket(WS_URL, ['graphql-transport-ws'], {
+    const ws = new WebSocket(WS_URL, ['graphql-transport-ws'], {
       headers: {
         Cookie: cookieHeader,
         Origin: 'https://de.scalable.capital',
         'User-Agent': USER_AGENT,
       },
     });
+    this.ws = ws;
 
-    this.ws.on('open', () => {
+    // Every handler below ignores events from a socket we have already replaced.
+    // A closing socket's `close` fires after `connect()` has installed its
+    // successor, and without this guard it would null out the live socket —
+    // `connection_init` then never goes out and the server drops us with 4408.
+    const isCurrent = () => this.ws === ws;
+
+    ws.on('open', () => {
+      if (!isCurrent()) return;
       console.log('[wsManager] Connected — sending connection_init');
       this.send({ type: 'connection_init', payload: { enabledFeatures: 'CRYPTO_MULTI_ETP' } });
     });
 
-    this.ws.on('message', (raw) => this.handleMessage(raw.toString()));
+    ws.on('message', (raw) => {
+      if (!isCurrent()) return;
+      this.handleMessage(raw.toString());
+    });
 
-    this.ws.on('close', (code) => {
+    ws.on('close', (code) => {
       console.log(`[wsManager] WebSocket closed (${code})`);
+      if (!isCurrent()) return;
       this.ws = null;
 
       const isAuthError = code === 4401 || this.reauthPending;
@@ -107,7 +138,7 @@ class WebSocketManager {
           console.error(
             '[wsManager] Still unauthorized after re-login — dropping all subscriptions.',
           );
-          this.subs.clear();
+          this.dropAllSubs();
           return;
         }
         this.authRetried = true;
@@ -118,7 +149,7 @@ class WebSocketManager {
           },
           (err: unknown) => {
             console.error('[wsManager] Re-login failed:', (err as Error).message);
-            this.subs.clear();
+            this.dropAllSubs();
           },
         );
         return;
@@ -127,7 +158,7 @@ class WebSocketManager {
       if (this.subs.size > 0) this.scheduleReconnect();
     });
 
-    this.ws.on('error', (err) => {
+    ws.on('error', (err) => {
       console.error('[wsManager] WebSocket error:', err.message);
     });
   }

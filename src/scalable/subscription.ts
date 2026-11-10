@@ -62,6 +62,13 @@ type Listener = (data: RealTimeValuation) => void;
 /** How long a cached valuation is considered fresh for GET /portfolio. */
 const VALUATION_CACHE_TTL_MS = 30_000;
 
+/**
+ * After a `fetchLatest` timeout the subscription is kept alive this long so a
+ * late value still populates the cache for the next request, then released.
+ * Without this the internal listener would leak and keep the WS open forever.
+ */
+const FETCH_LATEST_KEEPALIVE_MS = 60_000;
+
 class SubscriptionManager {
   private listeners = new Set<Listener>();
   private subId: string | null = null;
@@ -80,48 +87,27 @@ class SubscriptionManager {
       return Promise.resolve(this.lastValuation);
     }
     return new Promise((resolve) => {
+      let keepAliveTimer: ReturnType<typeof setTimeout> | undefined;
       const unsub = this.subscribe((val) => {
         clearTimeout(timer);
+        clearTimeout(keepAliveTimer);
         unsub();
         resolve(val);
       });
-      // On timeout: resolve null but keep the subscription alive so the WS
-      // stays connected and lastValuation gets populated for the next request.
-      const timer = setTimeout(() => resolve(null), timeoutMs);
+      // On timeout: resolve null but keep the subscription alive for a grace
+      // window so lastValuation gets populated for the next request — then
+      // release it, otherwise the listener leaks and latches the manager into
+      // a state where no later subscriber ever re-registers.
+      const timer = setTimeout(() => {
+        keepAliveTimer = setTimeout(unsub, FETCH_LATEST_KEEPALIVE_MS);
+        resolve(null);
+      }, timeoutMs);
     });
   }
 
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener);
-    if (this.listeners.size === 1) {
-      this.subId = randomUUID();
-      const session = getSession();
-      if (!session) {
-        console.warn('[subscription] No session — cannot subscribe');
-        return () => {
-          this.listeners.delete(listener);
-        };
-      }
-      wsManager.addSub(
-        this.subId,
-        'RealTimeValuation',
-        SUBSCRIPTION_QUERY,
-        { portfolioId: session.portfolioId },
-        (data) => {
-          const raw = (data as { realTimeValuation?: unknown })?.realTimeValuation;
-          if (!raw) return;
-          void checkResponseShape('RealTimeValuation', raw);
-          const parsed = RealTimeValuationSchema.safeParse(raw);
-          if (!parsed.success) {
-            console.warn('[API MONITOR] realTimeValuation schema mismatch:', parsed.error.message);
-            return;
-          }
-          this.lastValuation = parsed.data;
-          this.lastReceivedAt = Date.now();
-          for (const l of this.listeners) l(parsed.data);
-        },
-      );
-    }
+    this.ensureSubscribed();
     return () => {
       this.listeners.delete(listener);
       if (this.listeners.size === 0 && this.subId) {
@@ -129,6 +115,50 @@ class SubscriptionManager {
         this.subId = null;
       }
     };
+  }
+
+  /**
+   * Registers the WS subscription unless one is already live.
+   *
+   * Checked against `wsManager` on every `subscribe()` rather than off the
+   * listener count: a subscription can disappear underneath us (failed
+   * re-auth) or never have been created (no session at the time), and a
+   * listener-count trigger would then latch the stream silently dead.
+   */
+  private ensureSubscribed(): void {
+    if (this.subId && wsManager.hasSub(this.subId)) return;
+
+    const session = getSession();
+    if (!session) {
+      console.warn('[subscription] No session — cannot subscribe');
+      this.subId = null;
+      return;
+    }
+
+    const id = randomUUID();
+    this.subId = id;
+    wsManager.addSub(
+      id,
+      'RealTimeValuation',
+      SUBSCRIPTION_QUERY,
+      { portfolioId: session.portfolioId },
+      (data) => {
+        const raw = (data as { realTimeValuation?: unknown })?.realTimeValuation;
+        if (!raw) return;
+        void checkResponseShape('RealTimeValuation', raw);
+        const parsed = RealTimeValuationSchema.safeParse(raw);
+        if (!parsed.success) {
+          console.warn('[API MONITOR] realTimeValuation schema mismatch:', parsed.error.message);
+          return;
+        }
+        this.lastValuation = parsed.data;
+        this.lastReceivedAt = Date.now();
+        for (const l of this.listeners) l(parsed.data);
+      },
+      () => {
+        if (this.subId === id) this.subId = null;
+      },
+    );
   }
 }
 
