@@ -5,6 +5,9 @@ import { subscriptionManager } from '../../scalable/subscription.ts';
 
 const router = Router();
 
+/** Comment-line heartbeat interval, keeping proxies and clients from timing the stream out. */
+const HEARTBEAT_MS = 15_000;
+
 /**
  * GET /valuation/stream
  *
@@ -22,13 +25,24 @@ router.get('/stream', requireSession, (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
+
+  // Replay the last known valuation so a client sees a value at once instead of
+  // waiting for the next upstream tick.
+  const cached = subscriptionManager.getLastValuation();
+  if (cached) res.write(`data: ${JSON.stringify(cached)}\n\n`);
 
   const unsubscribe = subscriptionManager.subscribe((data) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   });
 
-  req.on('close', unsubscribe);
+  const heartbeat = setInterval(() => res.write(': ping\n\n'), HEARTBEAT_MS);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    unsubscribe();
+  });
 });
 
 export default router;

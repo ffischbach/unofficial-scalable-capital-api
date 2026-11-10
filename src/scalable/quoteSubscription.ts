@@ -93,14 +93,18 @@ class QuoteManager {
 
   private syncSubscription(): void {
     const newIsins = [...new Set([...this.listenerIsins.values()].flat())].sort();
-    if (JSON.stringify(newIsins) === JSON.stringify(this.currentIsins)) return;
-    this.currentIsins = newIsins;
+    // Re-register even when the ISIN set is unchanged if the subscription is
+    // no longer live (never created for want of a session, or dropped by a
+    // failed re-auth) — otherwise the stream stays silently dead.
+    const isLive = this.currentSubId !== null && wsManager.hasSub(this.currentSubId);
+    if (isLive && JSON.stringify(newIsins) === JSON.stringify(this.currentIsins)) return;
 
     const session = getSession();
     if (!session) {
       console.warn('[quotes] No session — cannot subscribe');
       return;
     }
+    this.currentIsins = newIsins;
 
     const newId = randomUUID();
     const vars = {
@@ -123,7 +127,14 @@ class QuoteManager {
       }
     };
 
-    if (this.currentSubId) {
+    const onDropped = () => {
+      if (this.currentSubId === newId) {
+        this.currentSubId = null;
+        this.currentIsins = [];
+      }
+    };
+
+    if (isLive && this.currentSubId) {
       wsManager.updateSub(
         this.currentSubId,
         newId,
@@ -131,9 +142,10 @@ class QuoteManager {
         QUOTE_QUERY,
         vars,
         onData,
+        onDropped,
       );
     } else {
-      wsManager.addSub(newId, 'realTimeQuoteTicks', QUOTE_QUERY, vars, onData);
+      wsManager.addSub(newId, 'realTimeQuoteTicks', QUOTE_QUERY, vars, onData, onDropped);
     }
     this.currentSubId = newId;
   }

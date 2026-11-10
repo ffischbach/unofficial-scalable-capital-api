@@ -8,6 +8,7 @@ const { mockWsManager } = vi.hoisted(() => ({
     addSub: vi.fn(),
     removeSub: vi.fn(),
     updateSub: vi.fn(),
+    hasSub: vi.fn(() => true),
   },
 }));
 
@@ -44,6 +45,7 @@ describe('SubscriptionManager', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    mockWsManager.hasSub.mockReturnValue(true);
 
     const sessionMod = await import('../auth/session.ts');
     const subMod = await import('./subscription.ts');
@@ -78,6 +80,7 @@ describe('SubscriptionManager', () => {
       'RealTimeValuation',
       expect.stringContaining('realTimeValuation'),
       { portfolioId: 'pid-123' },
+      expect.any(Function),
       expect.any(Function),
     );
   });
@@ -213,13 +216,48 @@ describe('SubscriptionManager', () => {
     expect(result).toBeNull();
   });
 
-  it('keeps the WS subscription alive after a fetchLatest timeout', async () => {
+  it('keeps the WS subscription alive right after a fetchLatest timeout', async () => {
     vi.useFakeTimers();
     const promise = subscriptionManager.fetchLatest(5_000);
     vi.advanceTimersByTime(5_001);
     await promise;
-    // addSub was called; removeSub must NOT have been called (subscription kept alive)
+    // The grace window has not elapsed yet: still subscribed so a late value
+    // can populate the cache for the next request.
     expect(mockWsManager.removeSub).not.toHaveBeenCalled();
+  });
+
+  it('releases the subscription after the keep-alive grace window so it does not leak', async () => {
+    vi.useFakeTimers();
+    const promise = subscriptionManager.fetchLatest(5_000);
+    vi.advanceTimersByTime(5_001);
+    await promise;
+    vi.advanceTimersByTime(60_001);
+    expect(mockWsManager.removeSub).toHaveBeenCalledOnce();
+  });
+
+  it('re-registers when the previous subscription was dropped by wsManager', () => {
+    subscriptionManager.subscribe(vi.fn());
+    expect(mockWsManager.addSub).toHaveBeenCalledOnce();
+
+    // wsManager gave up on the sub (e.g. re-auth failed) and told us so.
+    const onDropped = mockWsManager.addSub.mock.calls[0][5] as () => void;
+    onDropped();
+    mockWsManager.hasSub.mockReturnValue(false);
+
+    subscriptionManager.subscribe(vi.fn());
+    expect(mockWsManager.addSub).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-registers for a later subscriber when the first one had no session', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    getSession.mockReturnValue(null);
+    subscriptionManager.subscribe(vi.fn());
+    expect(mockWsManager.addSub).not.toHaveBeenCalled();
+
+    getSession.mockReturnValue(mockSession);
+    subscriptionManager.subscribe(vi.fn());
+    expect(mockWsManager.addSub).toHaveBeenCalledOnce();
+    warnSpy.mockRestore();
   });
 
   // -------------------------------------------------------------------------

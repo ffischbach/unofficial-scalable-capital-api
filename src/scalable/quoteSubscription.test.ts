@@ -8,6 +8,7 @@ const { mockWsManager } = vi.hoisted(() => ({
     addSub: vi.fn(),
     removeSub: vi.fn(),
     updateSub: vi.fn(),
+    hasSub: vi.fn(() => true),
   },
 }));
 
@@ -49,6 +50,7 @@ describe('QuoteManager', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    mockWsManager.hasSub.mockReturnValue(true);
 
     const sessionMod = await import('../auth/session.ts');
     const quoteMod = await import('./quoteSubscription.ts');
@@ -87,6 +89,7 @@ describe('QuoteManager', () => {
       expect.stringContaining('realTimeQuoteTicks'),
       expect.objectContaining({ isins: ['AAPL'], portfolioId: 'pid-123' }),
       expect.any(Function),
+      expect.any(Function),
     );
   });
 
@@ -103,6 +106,7 @@ describe('QuoteManager', () => {
       'realTimeQuoteTicks',
       expect.any(String),
       expect.objectContaining({ isins: ['AAPL', 'MSFT'] }),
+      expect.any(Function),
       expect.any(Function),
     );
   });
@@ -133,6 +137,7 @@ describe('QuoteManager', () => {
       'realTimeQuoteTicks',
       expect.any(String),
       expect.objectContaining({ isins: ['MSFT'] }),
+      expect.any(Function),
       expect.any(Function),
     );
     expect(mockWsManager.removeSub).not.toHaveBeenCalled();
@@ -169,6 +174,7 @@ describe('QuoteManager', () => {
       expect.any(String),
       expect.objectContaining({ isins: ['AAPL', 'MSFT'] }),
       expect.any(Function),
+      expect.any(Function),
     );
   });
 
@@ -181,6 +187,7 @@ describe('QuoteManager', () => {
       expect.any(String),
       expect.any(String),
       expect.objectContaining({ isins: ['AAPL', 'MSFT'] }), // AAPL not doubled
+      expect.any(Function),
       expect.any(Function),
     );
   });
